@@ -40,11 +40,16 @@ spring_Duration = 1.5
 item_list = None
 cart = {}
 
-try:
-    item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
-except Exception as e:
-    print(f"An error occurred: {e}")
-    item_list = []
+def get_items():
+    global item_list
+    try:
+        item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+        print(item_list)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        item_list = []
+
+get_items()
 
 # Main window
 root = tk.Tk()
@@ -275,9 +280,13 @@ def navigate_to_startPage():
         newOrderBtn.place_forget()
 
 
-def listing_widget(parent, relx, rely, image, name, price):
-
+def listing_widget(parent, relx, rely, item):
+    image = Image.open(imgPrefix + item['item_photo'])
+    name = item['item_name']
+    price = item['item_price']
+    stocks = item['stocks']
     cart[name] = 0
+
     def on_enter(event):
         canvas.config(highlightbackground="#ed0514", highlightthickness=2)
 
@@ -381,7 +390,7 @@ def listing_widget(parent, relx, rely, image, name, price):
     # Create the canvas
     canvas = tk.Canvas(parent, width=display_width + 20, height=display_height + 80, 
                        bg="white", bd=3, highlightthickness=0)
-    canvas.place(relx=relx, rely=rely, relwidth=0.2, relheight=0.42, anchor="center")
+    canvas.place(relx=relx, rely=rely+0.01, relwidth=0.2, relheight=0.5, anchor="center")
 
     # Add an image to the canvas
     image_resized = image.resize((int(display_width * 0.8), int(display_height * 0.6)), Image.Resampling.LANCZOS)
@@ -392,31 +401,42 @@ def listing_widget(parent, relx, rely, image, name, price):
     canvas.bind("<Enter>", on_enter)
     canvas.bind("<Leave>", on_leave)
     canvas.bind("<Configure>", resize_canvas_image)
+
+    # Create the Item Name label
+    leftLabel = tk.Label(parent, text=str(stocks) + " left", anchor="center", bg="white", fg="red")
+    leftLabel.place(relx=relx, rely=rely + 0.1, relwidth=0.17, relheight=0.07, anchor="center")
     
     # Create the Item Name label
     nameLabel = tk.Label(parent, text=name, anchor="center", bg="white")
-    nameLabel.place(relx=relx, rely=rely + 0.095, relwidth=0.17, relheight=0.07, anchor="center")
+    nameLabel.place(relx=relx, rely=rely + 0.15, relwidth=0.17, relheight=0.07, anchor="center")
     
     # Create the value label
     priceLabel = tk.Label(parent, text='₱' + str(price), font=("Tahoma", 12),
                            anchor="center", compound="center", bg="white", fg="#fff705")
-    priceLabel.place(relx=relx, rely=rely + 0.168, relwidth=0.065, relheight=0.074, anchor="center")
+    priceLabel.place(relx=relx, rely=rely + 0.22, relwidth=0.065, relheight=0.074, anchor="center")
 
     # Create the -1 button
     decreaseBtn = tk.Button(parent, text="-", command=decrease, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG, state="disabled")
-    decreaseBtn.place(relx=relx - 0.05, rely=rely + 0.25, relwidth=0.04, relheight=0.06, anchor="center")
+    decreaseBtn.place(relx=relx - 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
     decrease_buttons.append(decreaseBtn)
     
     # Create the +1 button
     increaseBtn = tk.Button(parent, text="+", command=increase, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG)
-    increaseBtn.place(relx=relx + 0.05, rely=rely + 0.25, relwidth=0.04, relheight=0.06, anchor="center")
+    increaseBtn.place(relx=relx + 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
     increase_buttons.append(increaseBtn)
     
     # Create the value label
     valueLabel = tk.Label(parent, text="0", font=("Open Sans", 12), width=4, anchor="center", bg="white")
-    valueLabel.place(relx=relx, rely=rely + 0.25, relwidth=0.055, relheight=0.07, anchor="center")
+    valueLabel.place(relx=relx, rely=rely + 0.305, relwidth=0.055, relheight=0.07, anchor="center")
+
+    if stocks <= 0:
+        increaseBtn.config(state="disabled")
+        canvas.config(bg="gray")  # Turn canvas background to gray
+        nameLabel.config(bg="gray")  # Change item name label to gray
+        leftLabel.config(bg="gray")  # Change stock label to gray
+        priceLabel.config(bg="gray")  # Change stock label to gray
 
     nameLabel.bind("<Configure>", resize_canvasLabel)
     priceLabel.bind("<Configure>", resize_priceLabel)
@@ -545,35 +565,29 @@ selectItems_label = tk.Label(top_section, bg=maroonBG, font=("Tahoma", 24))
 selectItems_label.place(relx=0.5, rely=0.5, relwidth=0.25, relheight=0.5, anchor="center")
 
 
-def display_item_list(item_list):
+def display_item_list():
     if not item_list or not item_list.data:
-        # Display placeholders if item_list is empty
-        placeholder_count = 4  # You can adjust this to any number of items
+        placeholder_count = 4
         for index in range(placeholder_count):
             relx = 0.125 + (index * 0.25)
             listing_widget(
                 selectionPage,
                 relx=relx,
                 rely=0.45,
-                image=Image.open("path_to_placeholder_image.png"),  # Placeholder image path
-                name=f"Item {index + 1}",
-                price=0
+                item={
+                    'item_photo': "path_to_placeholder_image.png",
+                    'item_name': f"Item {index + 1}",
+                    'item_price': 0
+                }
             )
     else:
-        # Display the actual items
         for index, item in enumerate(item_list.data):
             relx = 0.125 + (index * 0.25)
-            listing_widget(
-                selectionPage,
-                relx=relx,
-                rely=0.45,
-                image=Image.open(imgPrefix + item['item_photo']),
-                name=item['item_name'],
-                price=item['item_price']
-            )
+            listing_widget(selectionPage, relx=relx, rely=0.45, item=item)
+
 
 if item_list:
-    display_item_list(item_list)
+    display_item_list()
 
 total_label = tk.Label(selectionPage, text='Total: ₱' + str(total_price), bg=maroonBG, fg="white")
 total_label.place(relx=0.6, rely=0.9, relwidth=0.25, relheight=0.1, anchor="center")
@@ -601,7 +615,7 @@ def is_connected():
         socket.create_connection(("8.8.8.8", 53), timeout=5)
         if item_list ==[]:
             item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
-            display_item_list(item_list)
+            display_item_list()
         return True
     except (socket.timeout, socket.error):
         return False
@@ -758,6 +772,21 @@ def check_pin():
             return
 
     clear_pin()
+    print(item_list)
+    for item_name, cart_quantity in cart.items():
+        if cart_quantity > 0:
+            # Find the corresponding item in the item_list
+            matching_item = next((item for item in item_list.data if item['item_name'] == item_name), None)
+
+            if matching_item:
+                # Calculate the new stock
+                new_stock = matching_item['stocks'] - cart_quantity
+
+                # Update the stocks in Supabase
+                supabase.table('items').update({'stocks': new_stock}).eq('id', matching_item['id']).execute()
+
+                print(f"Updated {item_name}: New stock is {new_stock}")
+    
     go_to_dispensePage()
 
 def go_back_to_tapIDPage():
@@ -881,6 +910,8 @@ def increment_item():
         dispensingLabel.config(text="Done")
         newOrderBtn.place(relx=0.5, rely=0.1, relwidth=0.3, relheight=0.1, anchor="center")
         show_Btn()
+        get_items()
+        display_item_list()
         
 widgets = [
     (welcomeMsg, "Arial", 21),
