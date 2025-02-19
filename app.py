@@ -8,6 +8,9 @@ from time import sleep
 import designs
 import socket
 import os
+from datetime import datetime
+import RPi.GPIO as GPIO
+import time
 
 # Get the directory where app.py is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +39,7 @@ max_items = 3
 display_width = 120
 display_height = 120
 item_pins = [17, 27, 22, 23]
-spring_Duration = 1.5
+spring_Duration = 2.5
 item_list = None
 cart = {}
 
@@ -111,15 +114,19 @@ def initial_values():
 
 initial_values()
 
+GPIO.setmode(GPIO.BCM)  # Use Broadcom pin numbering
+GPIO.setup(item_pins, GPIO.OUT)
+for pin in item_pins:
+    GPIO.output(pin, GPIO.HIGH)
+
+
 def dispense_items(slotNumber):
-    
-    """Activates the relay on the specified slotNumber for the duration.
-    springMotor = OutputDevice(slotNumber)
-    try:
-        springMotor.on()
-        sleep(spring_Duration)
-    finally:
-        springMotor.off()"""
+        
+    GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
+    time.sleep(spring_Duration)
+    GPIO.output(slotNumber, GPIO.HIGH)  # Turn off the relay
+        
+    # Call the increment_item function (replace this with your actual function)
     increment_item()
 
 def process_items(values_list):
@@ -127,6 +134,7 @@ def process_items(values_list):
     for index, count in enumerate(values_list):
         for _ in range(count):  # Run multiple times based on the count
             dispense_items(item_pins[index])
+            time.sleep(1)
         
 def show_modal(message, duration):
     # Create the modal
@@ -564,7 +572,6 @@ bottom_section.place(relx=0, rely=0.8, relwidth=1, relheight=0.2)
 selectItems_label = tk.Label(top_section, bg=maroonBG, font=("Tahoma", 24))
 selectItems_label.place(relx=0.5, rely=0.5, relwidth=0.25, relheight=0.5, anchor="center")
 
-
 def display_item_list():
     if not item_list or not item_list.data:
         placeholder_count = 4
@@ -685,7 +692,7 @@ def go_back_to_selectionPage():
     selectionPage.pack(fill="both", expand=True)
 
 def go_to_confirmationPage(buffer):
-    global username, CORRECT_PIN, balance, current_page
+    global userData, CORRECT_PIN, balance, current_page
     
     
     userQuery = supabase.table('students').select('*').eq('idcode', buffer).execute()
@@ -772,7 +779,6 @@ def check_pin():
             return
 
     clear_pin()
-    print(item_list)
     for item_name, cart_quantity in cart.items():
         if cart_quantity > 0:
             # Find the corresponding item in the item_list
@@ -784,8 +790,18 @@ def check_pin():
 
                 # Update the stocks in Supabase
                 supabase.table('items').update({'stocks': new_stock}).eq('id', matching_item['id']).execute()
-
                 print(f"Updated {item_name}: New stock is {new_stock}")
+
+                # Insert each item into the transactions table
+                for _ in range(cart_quantity):
+                    supabase.table('transactions').insert({
+                        'student': userData['idcode'],
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Format the current time
+                        'type': item_name,  # The item name
+                        'amount': matching_item['item_price']  # The price of the item
+                    }).execute()
+
+                    print(f"Inserted transaction for {item_name} at price {matching_item['item_price']}")
     
     go_to_dispensePage()
 
