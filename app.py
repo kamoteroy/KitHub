@@ -9,7 +9,7 @@ import designs
 import socket
 import os
 from datetime import datetime
-import RPi.GPIO as GPIO
+#import RPi.GPIO as GPIO
 import time
 
 # Get the directory where app.py is located
@@ -111,22 +111,23 @@ def initial_values():
     buffer = ""
     balanceModal = None
     balance = 0
+    defer = False
 
 initial_values()
 
-GPIO.setmode(GPIO.BCM)  # Use Broadcom pin numbering
+'''GPIO.setmode(GPIO.BCM)  # Use Broadcom pin numbering
 GPIO.setup(item_pins, GPIO.OUT)
 for pin in item_pins:
-    GPIO.output(pin, GPIO.HIGH)
+    GPIO.output(pin, GPIO.HIGH)'''
 
 
 def dispense_items(slotNumber):
         
-    GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
+    '''GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
     time.sleep(spring_Duration)
     GPIO.output(slotNumber, GPIO.HIGH)  # Turn off the relay
         
-    # Call the increment_item function (replace this with your actual function)
+    # Call the increment_item function (replace this with your actual function)'''
     increment_item()
 
 def process_items(values_list):
@@ -135,6 +136,7 @@ def process_items(values_list):
         for _ in range(count):  # Run multiple times based on the count
             dispense_items(item_pins[index])
             time.sleep(1)
+    deduct()
         
 def show_modal(message, duration):
     # Create the modal
@@ -286,7 +288,6 @@ def navigate_to_startPage():
 
     if 'newOrderBtn' in globals():
         newOrderBtn.place_forget()
-
 
 def listing_widget(parent, relx, rely, item):
     image = Image.open(imgPrefix + item['item_photo'])
@@ -694,13 +695,17 @@ def go_back_to_selectionPage():
 def go_to_confirmationPage(buffer):
     global userData, CORRECT_PIN, balance, current_page
     
-    
     userQuery = supabase.table('students').select('*').eq('idcode', buffer).execute()
+    
     if(userQuery.data):
+        userData = userQuery.data[0]
+        if(userData['deferred']):
+            messagebox.showinfo("No Balance Left", "You have already used your deferment chance")
+            return
         tapID_page.pack_forget()
         confirmationPage.pack(fill="both", expand=True)
         current_page = confirmationPage
-        userData = userQuery.data[0]
+        
         balance = int(userData['balance'])
         CORRECT_PIN = userData['pin']
         greetingsLabel.config(text="Hi, " + userData['fname'] + " " + userData['lname'])
@@ -765,7 +770,7 @@ def clear_last_character():
     pinDisplay["text"] = current[:-1]
 
 def check_pin():
-    global balance
+    global balance, defer
     if entered_pin != CORRECT_PIN:
         #messagebox.showerror("Incorrect PIN.", "Try again.")
         show_modal("Incorrect PIN\nPlease Try again.", 1500)
@@ -774,6 +779,7 @@ def check_pin():
         
     if balance < total_price:
         defer = messagebox.askyesno("Insufficient Balance", "Your payment will be added to your tuition")
+        print(defer)
         if not defer:
             clear_pin()
             return
@@ -814,6 +820,15 @@ def go_back_to_tapIDPage():
     confirmationPage.pack_forget() 
     tapID_page.pack(fill="both", expand=True)
 
+def deduct():
+    global balance, defer
+    if defer:
+        defer_response = supabase.table('students').update({'balance': 0, 'fbalance': total_price - balance, 'deferred': True}).eq('idcode', userData['idcode']).execute()
+    else:
+        defer_response = supabase.table('students').update({'balance': balance - total_price}).eq('idcode', userData['idcode']).execute()
+    print(defer_response)
+    defer = False
+    balance = 0
 
 ####### CONFIRMATION PAGE WIDGETS
 
