@@ -12,17 +12,12 @@ from datetime import datetime
 #import RPi.GPIO as GPIO
 import time
 
-# Get the directory where app.py is located
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Construct the path to the img directory
 imgPrefix = os.path.join(script_dir, "img/")
 
-# Replace with your Supabase URL and API key
+# db
 url = "https://gzjxxpeofotelxrzblez.supabase.co"
 key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6anh4cGVvZm90ZWx4cnpibGV6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzcxMDEwODEsImV4cCI6MjA1MjY3NzA4MX0.R_tCibbHI78B0JYvIja4aNam3tltG3M-eDnmQKn15Cg"
-
-# Create a Supabase client
 supabase: Client = create_client(url, key)
 
 #maroonBG = "#893a3f"
@@ -39,9 +34,10 @@ max_items = 3
 display_width = 120
 display_height = 120
 item_pins = [17, 27, 22, 23]
-spring_Duration = 2.5
+spring_Duration = 1.9
 item_list = None
 cart = {}
+defer = False
 
 def get_items():
     global item_list
@@ -72,23 +68,19 @@ root.bind("<Control-Shift-Q>", close_app)'''
 
 input_buffer = ""  # A buffer to store input characters
 
-def on_input(event):
+def on_input(event):        # for terminating app
     global input_buffer
-    char = event.char  # Capture the character
-    if char.isdigit():  # Only handle digits
+    char = event.char 
+    if char.isdigit():
         input_buffer += char
     
-    # Check if the buffer contains the target number
     if input_buffer == "0005729339":
-        root.destroy()  # Close the app
+        root.destroy()
 
-    # Clear the buffer if it gets too long
-    if len(input_buffer) > 10:  # Assuming 10 is the max length
+    if len(input_buffer) > 10:
         input_buffer = ""
 
-# Bind all key events to on_input
 root.bind("<KeyPress>", on_input)
-
 
 style = ttk.Style()
 style.theme_use("clam")
@@ -98,7 +90,6 @@ def initial_values():
     global entered_pin, CORRECT_PIN, userName, all_buttons, buffer
     global balanceModal, balance
 
-    # Reset all global variables to their default values
     total_price = 0
     total_items = 0
     current_item = 1
@@ -131,9 +122,8 @@ def dispense_items(slotNumber):
     increment_item()
 
 def process_items(values_list):
-    """Loops through values_list and triggers dispense_items for each non-zero value."""
     for index, count in enumerate(values_list):
-        for _ in range(count):  # Run multiple times based on the count
+        for _ in range(count): 
             dispense_items(item_pins[index])
             time.sleep(1)
     deduct()
@@ -295,6 +285,7 @@ def listing_widget(parent, relx, rely, item):
     price = item['item_price']
     stocks = item['stocks']
     cart[name] = 0
+    max_items = stocks
 
     def on_enter(event):
         canvas.config(highlightbackground="#ed0514", highlightthickness=2)
@@ -366,6 +357,9 @@ def listing_widget(parent, relx, rely, item):
             decreaseBtn.config(state="normal")
         else:
             decreaseBtn.config(state="disabled")
+
+        if int(valueLabel["text"]) >= max_items:  # Disable if stock limit is reached
+            increaseBtn.config(state="disabled")
 
     def resize_canvasLabel(event):
         scale_factor = min(event.width, event.height) / 21
@@ -503,8 +497,10 @@ def show_balanceModal():
         buffer += event.char 
 
         if event.keysym == "Return":
-            fetch_student(buffer.strip()) 
-            buffer = "" 
+            if buffer.strip():
+                fetch_student(buffer.strip())  
+            buffer = ""
+
 
     balanceModal.bind("<KeyPress>", on_key_press)
     balanceModal.focus_set()
@@ -532,11 +528,14 @@ def show_balanceModal():
 
 def on_key_press(event):
     global buffer
-    buffer += event.char
     
-    if event.keysym == "Return":    # press enter
-        go_to_confirmationPage(buffer)
+    if event.keysym == "Return":
+        if buffer.strip(): 
+            go_to_confirmationPage(buffer)
         buffer = ""
+    else:
+        buffer += event.char 
+
         
 def go_to_tapID_page():
     global current_page
@@ -822,6 +821,8 @@ def go_back_to_tapIDPage():
 
 def deduct():
     global balance, defer
+    print('bobo')
+    print(defer)
     if defer:
         defer_response = supabase.table('students').update({'balance': 0, 'fbalance': total_price - balance, 'deferred': True}).eq('idcode', userData['idcode']).execute()
     else:
@@ -833,18 +834,18 @@ def deduct():
 ####### CONFIRMATION PAGE WIDGETS
 
 
-confirmationPage = tk.Frame(root, bg="#ffce03")
+confirmationPage = tk.Frame(root, bg=goldBG)
 
 backBtn3 = tk.Button(confirmationPage, text="Back", font=("Arial", 12), bg=goldBG, highlightthickness=0, command=go_back_to_tapIDPage, fg='white', activebackground=goldBG, bd=0)
 backBtn3.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)
 
-greetingsLabel = tk.Label(confirmationPage, bg="#ffce03", justify="center")
+greetingsLabel = tk.Label(confirmationPage, bg=goldBG, justify="center")
 greetingsLabel.place(relx=0.3, rely=0.25, anchor="center")
-currentBalance_label = tk.Label(confirmationPage, bg="#ffce03", justify="center")
+currentBalance_label = tk.Label(confirmationPage, bg=goldBG, justify="center")
 currentBalance_label.place(relx=0.3, rely=0.35, anchor="center")
-enterPinLabel = tk.Label(confirmationPage, text="Enter\nyour pin", bg="#ffce03", justify="center")
+enterPinLabel = tk.Label(confirmationPage, text="Enter\nyour pin", bg=goldBG, justify="center")
 enterPinLabel.place(relx=0.3, rely=0.55, anchor="center")
-errorLabel = tk.Label(confirmationPage, text="Not you? Click Here to Report", bg="#ffce03", justify="center", font=("Tahoma", 9, "bold"))
+errorLabel = tk.Label(confirmationPage, text="Not you? Click Here to Report", bg=goldBG, justify="center", font=("Tahoma", 9, "bold"))
 errorLabel.place(relx=0.3, rely=0.9, anchor="center")
 
 # Calculator frame
@@ -933,12 +934,14 @@ def show_Btn(opacity=0):
 
 def increment_item():
     global current_item
-    print(current_item)
+    print(str(current_item) + "/" + str(total_items))
     if current_item < total_items:
         current_item += 1
         dispensingLabel.config(text=f"Dispensing {current_item}/{total_items}")
+        dispensingLabel.update_idletasks()
     else:
         dispensingLabel.config(text="Done")
+        dispensingLabel.update_idletasks()
         newOrderBtn.place(relx=0.5, rely=0.1, relwidth=0.3, relheight=0.1, anchor="center")
         show_Btn()
         get_items()
