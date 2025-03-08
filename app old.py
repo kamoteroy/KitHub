@@ -7,6 +7,16 @@ from gpiozero import OutputDevice
 from time import sleep
 import designs
 import socket
+import os
+from datetime import datetime
+import RPi.GPIO as GPIO
+import time
+
+# Get the directory where app.py is located
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to the img directory
+imgPrefix = os.path.join(script_dir, "img/")
 
 # Replace with your Supabase URL and API key
 url = "https://gzjxxpeofotelxrzblez.supabase.co"
@@ -15,11 +25,6 @@ key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd6
 # Create a Supabase client
 supabase: Client = create_client(url, key)
 
-response = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
-#print(response.data)
-
-# FIX VARIABLES
-imgPrefix = "img/"
 #maroonBG = "#893a3f"
 maroonBG = "#800000"
 goldBG = "#ffce03"
@@ -34,23 +39,65 @@ max_items = 3
 display_width = 120
 display_height = 120
 item_pins = [17, 27, 22, 23]
-spring_Duration = 1.5
-reconnecting_page = None
+spring_Duration17 = 1.885
+spring_Duration22 = 1.9
+spring_Duration = 1.92
+item_list = None
+cart = {}
 
+def get_items():
+    global item_list
+    try:
+        item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+        print(item_list)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        item_list = []
+
+get_items()
 
 # Main window
 root = tk.Tk()
 root.geometry("800x480")
 root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
-#root.attributes('-fullscreen', True)  # Fullscreen mode
+root.attributes('-fullscreen', True)  # Fullscreen mode
+'''root.config(cursor="none")
+root.protocol("WM_DELETE_WINDOW", lambda: None)
+root.attributes("-topmost", True)
+
+# Custom key to close the app
+def close_app(event):
+    root.destroy()
+
+root.bind("<Control-Shift-Q>", close_app)'''
+
+input_buffer = ""  # A buffer to store input characters
+
+def on_input(event):
+    global input_buffer
+    char = event.char  # Capture the character
+    if char.isdigit():  # Only handle digits
+        input_buffer += char
+    
+    # Check if the buffer contains the target number
+    if input_buffer == "0005729339":
+        root.destroy()  # Close the app
+
+    # Clear the buffer if it gets too long
+    if len(input_buffer) > 10:  # Assuming 10 is the max length
+        input_buffer = ""
+
+# Bind all key events to on_input
+root.bind("<KeyPress>", on_input)
+
 
 style = ttk.Style()
 style.theme_use("clam")
 
 def initial_values():
     global total_price, total_items, current_item, decrease_buttons, increase_buttons
-    global cart, entered_pin, CORRECT_PIN, userName, all_buttons, buffer
+    global entered_pin, CORRECT_PIN, userName, all_buttons, buffer
     global balanceModal, balance
 
     # Reset all global variables to their default values
@@ -59,7 +106,6 @@ def initial_values():
     current_item = 1
     decrease_buttons = []
     increase_buttons = []
-    cart = {}
     entered_pin = ""
     CORRECT_PIN = ""
     userName = ''
@@ -70,7 +116,7 @@ def initial_values():
 
 initial_values()
 
-def dispense_items(slotNumber):
+'''def dispense_items(slotNumber):
     
     """Activates the relay on the specified slotNumber for the duration.
     springMotor = OutputDevice(slotNumber)
@@ -79,13 +125,32 @@ def dispense_items(slotNumber):
         sleep(spring_Duration)
     finally:
         springMotor.off()"""
+    increment_item()'''
+
+GPIO.setmode(GPIO.BCM)  # Use Broadcom pin numbering
+GPIO.setup(item_pins, GPIO.OUT)
+for pin in item_pins:
+    GPIO.output(pin, GPIO.HIGH)
+
+
+def dispense_items(slotNumber):
+    """Activates the relay on the specified GPIO pin (slotNumber) for the duration."""
+        
+    GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
+    time.sleep(spring_Duration)
+    GPIO.output(slotNumber, GPIO.HIGH)  # Turn off the relay
+        
+    # Call the increment_item function (replace this with your actual function)
     increment_item()
+
+
 
 def process_items(values_list):
     """Loops through values_list and triggers dispense_items for each non-zero value."""
     for index, count in enumerate(values_list):
         for _ in range(count):  # Run multiple times based on the count
             dispense_items(item_pins[index])
+            time.sleep(1)
         
 def show_modal(message, duration):
     # Create the modal
@@ -133,9 +198,39 @@ def show_modal(message, duration):
     # Start the animation
     animate_drop(start_y)
 
+reconnectingPage = tk.Frame(root, bg="#800000")
+reconnectingPage.pack(fill="both", expand=True)
+datdat2 = tk.StringVar()                                       
+datdat2.set("Reconnecting")
+
+designs.datdat_animation2(datdat2, reconnectingPage)
+
+reconnectingLabel = tk.Label(reconnectingPage, textvariable=datdat2, fg=goldBG, bg=maroonBG, font=("Arial", 24))
+reconnectingLabel.place(relx=0.5, rely=0.8, anchor="center")
+
+recon = Image.open(imgPrefix + "no_internet.gif")
+reconFrames = []
+for frame in range(recon.n_frames):
+    recon.seek(frame)
+    frame_image = recon.convert("RGBA")
+    frame_image = frame_image.resize((280, 200))
+    reconFrames.append(ImageTk.PhotoImage(frame_image))
+
+recon_gif = tk.Label(reconnectingPage, image=reconFrames[0], bg="#800000")
+recon_gif.place(relx=0.5, rely=0.4, anchor="center")
+
+def recon_animate(frame_index=0):
+    recon_gif.config(image=reconFrames[frame_index])
+    frame_index = (frame_index + 1) % len(reconFrames)
+    root.after(400, recon_animate, frame_index)
+
+recon_animate()
+
+
 ####### START PAGE
+
+
 startPage = tk.Frame(root, bg=goldBG)
-startPage.pack(fill="both", expand=True)
 
 top_section = tk.Frame(startPage, bg=maroonBG)
 top_section.place(relx=0, rely=0, relwidth=1, relheight=0.2)
@@ -157,22 +252,32 @@ clickStart.place(relx=0.5, rely=0.5, anchor="center")
 
 designs.datdat_animation(datdat, startPage)
 
+current_page = reconnectingPage
+
+def show_selectionPage(event):
+    global current_page
+    current_page = selectionPage
+    startPage.pack_forget()
+    selectionPage.pack(fill="both", expand=True)
+
 def bind_all_startPage(frame, event, handler):
     frame.bind(event, handler)
     for child in frame.winfo_children():
         child.bind(event, handler) 
 
-bind_all_startPage(startPage, "<Button-1>", lambda event: designs.show_selectionPage(event, startPage, selectionPage))
+bind_all_startPage(startPage, "<Button-1>", show_selectionPage)
 kithub_logo.bind("<Configure>", lambda event: designs.resize_logo(event, kithub_logo))
 
-def go_back_to_startPage():
-    global total_price, total_items, cart
+def navigate_to_startPage():
+    global total_price, total_items, cart, current_page
+    
     cart = {key: 0 for key in cart}
     total_price = 0
     total_items = 0
-    total_label.config(text="Total: ₱" + str(total_price))
+    
+    if 'total_label' in globals():
+        total_label.config(text="Total: ₱" + str(total_price))
 
-    # Reset all value labels to 0
     for widget in selectionPage.winfo_children():
         if isinstance(widget, tk.Label):
             try:
@@ -180,23 +285,32 @@ def go_back_to_startPage():
                     widget.config(text="0")
             except Exception as e:
                 pass
-        # Disable all decrease buttons
         if isinstance(widget, tk.Button) and widget.cget("text") == "-":
             widget.config(state="disabled")
-
-
+    
     for btn in decrease_buttons:
         btn.config(state="disabled")
 
-    checkoutBtn.config(state=tk.DISABLED)
-    selectionPage.pack_forget()
-    dispensePage.pack_forget()
+    if 'checkoutBtn' in globals():
+        checkoutBtn.config(state=tk.DISABLED)
+    
+    if current_page:
+        current_page.pack_forget()
+
     startPage.pack(fill="both", expand=True)
-    newOrderBtn.place_forget()
+    current_page = startPage
 
-def listing_widget(parent, relx, rely, image, name, price):
+    if 'newOrderBtn' in globals():
+        newOrderBtn.place_forget()
 
+
+def listing_widget(parent, relx, rely, item):
+    image = Image.open(imgPrefix + item['item_photo'])
+    name = item['item_name']
+    price = item['item_price']
+    stocks = item['stocks']
     cart[name] = 0
+
     def on_enter(event):
         canvas.config(highlightbackground="#ed0514", highlightthickness=2)
 
@@ -287,25 +401,20 @@ def listing_widget(parent, relx, rely, image, name, price):
         event.widget.price_img_resized = ImageTk.PhotoImage(resized_img)
         event.widget.config(font=("Arial", new_font_size))
 
-    def resize_addminus(event):
-        global add_resized, minus_resized
-        resized_img1 = minus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-        resized_img2 = plus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-        minus_resized = ImageTk.PhotoImage(resized_img1)
-        add_resized = ImageTk.PhotoImage(resized_img2)
-
-        # Update the images for all decrease and increase buttons
-        for btn in decrease_buttons:
-            btn.config(image=minus_resized)
-        
-        for btn in increase_buttons:
-            btn.config(image=add_resized)
-            
+    def resize_minus(event):
+        resized_img = plus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized)
+    
+    def resize_add(event):
+        resized_img = minus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized)
 
     # Create the canvas
     canvas = tk.Canvas(parent, width=display_width + 20, height=display_height + 80, 
                        bg="white", bd=3, highlightthickness=0)
-    canvas.place(relx=relx, rely=rely, relwidth=0.2, relheight=0.42, anchor="center")
+    canvas.place(relx=relx, rely=rely+0.01, relwidth=0.2, relheight=0.5, anchor="center")
 
     # Add an image to the canvas
     image_resized = image.resize((int(display_width * 0.8), int(display_height * 0.6)), Image.Resampling.LANCZOS)
@@ -316,36 +425,47 @@ def listing_widget(parent, relx, rely, image, name, price):
     canvas.bind("<Enter>", on_enter)
     canvas.bind("<Leave>", on_leave)
     canvas.bind("<Configure>", resize_canvas_image)
+
+    # Create the Item Name label
+    leftLabel = tk.Label(parent, text=str(stocks) + " left", anchor="center", bg="white", fg="red")
+    leftLabel.place(relx=relx, rely=rely + 0.1, relwidth=0.17, relheight=0.07, anchor="center")
     
     # Create the Item Name label
     nameLabel = tk.Label(parent, text=name, anchor="center", bg="white")
-    nameLabel.place(relx=relx, rely=rely + 0.095, relwidth=0.17, relheight=0.07, anchor="center")
+    nameLabel.place(relx=relx, rely=rely + 0.15, relwidth=0.17, relheight=0.07, anchor="center")
     
     # Create the value label
     priceLabel = tk.Label(parent, text='₱' + str(price), font=("Tahoma", 12),
                            anchor="center", compound="center", bg="white", fg="#fff705")
-    priceLabel.place(relx=relx, rely=rely + 0.168, relwidth=0.065, relheight=0.074, anchor="center")
+    priceLabel.place(relx=relx, rely=rely + 0.22, relwidth=0.065, relheight=0.074, anchor="center")
 
     # Create the -1 button
     decreaseBtn = tk.Button(parent, text="-", command=decrease, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG, state="disabled")
-    decreaseBtn.place(relx=relx - 0.05, rely=rely + 0.25, relwidth=0.04, relheight=0.06, anchor="center")
+    decreaseBtn.place(relx=relx - 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
     decrease_buttons.append(decreaseBtn)
     
     # Create the +1 button
     increaseBtn = tk.Button(parent, text="+", command=increase, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG)
-    increaseBtn.place(relx=relx + 0.05, rely=rely + 0.25, relwidth=0.055, relheight=0.07, anchor="center")
+    increaseBtn.place(relx=relx + 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
     increase_buttons.append(increaseBtn)
     
     # Create the value label
     valueLabel = tk.Label(parent, text="0", font=("Open Sans", 12), width=4, anchor="center", bg="white")
-    valueLabel.place(relx=relx, rely=rely + 0.25, relwidth=0.055, relheight=0.07, anchor="center")
+    valueLabel.place(relx=relx, rely=rely + 0.305, relwidth=0.055, relheight=0.07, anchor="center")
+
+    if stocks <= 0:
+        increaseBtn.config(state="disabled")
+        canvas.config(bg="gray")  # Turn canvas background to gray
+        nameLabel.config(bg="gray")  # Change item name label to gray
+        leftLabel.config(bg="gray")  # Change stock label to gray
+        priceLabel.config(bg="gray")  # Change stock label to gray
 
     nameLabel.bind("<Configure>", resize_canvasLabel)
     priceLabel.bind("<Configure>", resize_priceLabel)
-    decreaseBtn.bind("<Configure>", resize_addminus)
-    increaseBtn.bind("<Configure>", resize_addminus)
+    decreaseBtn.bind("<Configure>", resize_add)
+    increaseBtn.bind("<Configure>", resize_minus)
     valueLabel.bind("<Configure>", resize_valueLabel)
 
 def show_balanceModal():
@@ -371,7 +491,7 @@ def show_balanceModal():
     balanceModal = tk.Frame(root, bg=maroonBG, bd=2)
     balanceModal.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.6, relheight=0.7)
 
-    balanceLabel = tk.Label(balanceModal, text="", bg="#ffce03", font=("Arial", 24), anchor="center")
+    balanceLabel = tk.Label(balanceModal, text="", bg="#4c6fd3", font=("Arial", 24), anchor="center")
     balanceLabel.place(relx=0.5, rely=0.5, relwidth=0.95, relheight=0.92, anchor="center")
 
     result_label = ttk.Label(balanceModal, text="Tap ID to\nCheck Balance", font=("Arial", 10, "bold"), foreground="white", background="#4c6fd3", justify="center")
@@ -434,11 +554,12 @@ def on_key_press(event):
         buffer = ""
         
 def go_to_tapID_page():
+    global current_page
+    current_page = tapID_page
     root.bind("<Key>", on_key_press)
     print(cart)
     selectionPage.pack_forget()
     tapID_page.pack(fill="both", expand=True)
-    
 
 ##### SELECTION PAGE WIDGETS
 
@@ -451,7 +572,7 @@ top_section.place(relx=0, rely=0, relwidth=1, relheight=0.2)
 backBtn = tk.Button(
     top_section,
     text="Back",
-    command=go_back_to_startPage,
+    command=navigate_to_startPage,
     font=("Arial", 12),
     bg=maroonBG,
     fg=maroonBG,
@@ -467,17 +588,30 @@ bottom_section.place(relx=0, rely=0.8, relwidth=1, relheight=0.2)
 selectItems_label = tk.Label(top_section, bg=maroonBG, font=("Tahoma", 24))
 selectItems_label.place(relx=0.5, rely=0.5, relwidth=0.25, relheight=0.5, anchor="center")
 
-# Loop through items to create widgets
-for index, item in enumerate(response.data):
-    relx = 0.125 + (index * 0.25)
-    listing_widget(
-        selectionPage,
-        relx=relx,
-        rely=0.45,
-        image=Image.open(imgPrefix + item['item_photo']),
-        name=item['item_name'],
-        price=item['item_price']
-    )
+
+def display_item_list():
+    if not item_list or not item_list.data:
+        placeholder_count = 4
+        for index in range(placeholder_count):
+            relx = 0.125 + (index * 0.25)
+            listing_widget(
+                selectionPage,
+                relx=relx,
+                rely=0.45,
+                item={
+                    'item_photo': "path_to_placeholder_image.png",
+                    'item_name': f"Item {index + 1}",
+                    'item_price': 0
+                }
+            )
+    else:
+        for index, item in enumerate(item_list.data):
+            relx = 0.125 + (index * 0.25)
+            listing_widget(selectionPage, relx=relx, rely=0.45, item=item)
+
+
+if item_list:
+    display_item_list()
 
 total_label = tk.Label(selectionPage, text='Total: ₱' + str(total_price), bg=maroonBG, fg="white")
 total_label.place(relx=0.6, rely=0.9, relwidth=0.25, relheight=0.1, anchor="center")
@@ -496,6 +630,40 @@ total_label.bind("<Configure>", lambda event: designs.resize_totalLabel(event, t
 checkoutBtn.bind("<Configure>", lambda event: designs.resize_checkoutBtn(event, checkoutBtn))
 checkBalanceBtn.bind("<Configure>", lambda event: designs.resize_checkBalanceBtn(event, checkBalanceBtn))
 
+
+# Function to check if connected to the internet
+def is_connected():
+    global item_list
+    try:
+        # Try connecting to a known host (Google's public DNS server) on port 53
+        socket.create_connection(("8.8.8.8", 53), timeout=5)
+        if item_list ==[]:
+            item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+            display_item_list()
+        return True
+    except (socket.timeout, socket.error):
+        return False
+
+def show_reconnectingPage():
+    global reconnectingPage, current_page
+    if current_page:
+        current_page.pack_forget()
+
+    reconnectingPage.pack(fill="both", expand=True)
+    current_page = reconnectingPage
+
+def check_connection():
+    if is_connected():
+        if current_page == reconnectingPage:
+            navigate_to_startPage()
+            initial_values()
+    else:
+        show_reconnectingPage()
+
+    root.after(1000, check_connection)
+
+# Start by checking the connection
+check_connection()
 
 ############################################################################ TAP ID PAGE
 
@@ -533,18 +701,22 @@ animate_tapID()
 
 
 def go_back_to_selectionPage():
+    global current_page
+    current_page = selectionPage
     root.unbind("<Key>")
     tapID_page.pack_forget()
     cart = [0,0,0,0]
     selectionPage.pack(fill="both", expand=True)
 
 def go_to_confirmationPage(buffer):
-    global username, CORRECT_PIN, balance
+    global userData, CORRECT_PIN, balance, current_page
+    
     
     userQuery = supabase.table('students').select('*').eq('idcode', buffer).execute()
     if(userQuery.data):
         tapID_page.pack_forget()
         confirmationPage.pack(fill="both", expand=True)
+        current_page = confirmationPage
         userData = userQuery.data[0]
         balance = int(userData['balance'])
         CORRECT_PIN = userData['pin']
@@ -574,6 +746,8 @@ backBtn2.bind("<Configure>", lambda event: designs.resize_backBtn2(event, backBt
 
 
 def go_to_dispensePage():
+    global current_page
+    current_page = dispensePage
     confirmationPage.pack_forget() 
     dispensePage.pack(fill="both", expand=True)
     
@@ -609,7 +783,6 @@ def clear_last_character():
 
 def check_pin():
     global balance
-    print(entered_pin)
     if entered_pin != CORRECT_PIN:
         #messagebox.showerror("Incorrect PIN.", "Try again.")
         show_modal("Incorrect PIN\nPlease Try again.", 1500)
@@ -623,9 +796,37 @@ def check_pin():
             return
 
     clear_pin()
+    for item_name, cart_quantity in cart.items():
+        if cart_quantity > 0:
+            # Find the corresponding item in the item_list
+            matching_item = next((item for item in item_list.data if item['item_name'] == item_name), None)
+
+            if matching_item:
+                # Calculate the new stock
+                new_stock = matching_item['stocks'] - cart_quantity
+
+                # Update the stocks in Supabase
+                supabase.table('items').update({'stocks': new_stock}).eq('id', matching_item['id']).execute()
+                print(f"Updated {item_name}: New stock is {new_stock}")
+
+                # Insert each item into the transactions table
+                for _ in range(cart_quantity):
+                    supabase.table('transactions').insert({
+                        'student': userData['idcode'],
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Format the current time
+                        'type': item_name,  # The item name
+                        'amount': matching_item['item_price']  # The price of the item
+                    }).execute()
+
+                    print(f"Inserted transaction for {item_name} at price {matching_item['item_price']}")
+    
     go_to_dispensePage()
 
 def go_back_to_tapIDPage():
+    global current_page
+    current_page = tapID_page
+    print(entered_pin)
+    clear_pin()
     root.bind("<Key>", on_key_press)
     confirmationPage.pack_forget() 
     tapID_page.pack(fill="both", expand=True)
@@ -712,7 +913,7 @@ dispensingLabel.lift()
 
 newOrderBtn = tk.Button(
     dispensePage, text="New Order", highlightthickness=0,
-    command=go_back_to_startPage, bd=0, bg="#ffca05", fg="white",
+    command=navigate_to_startPage, bd=0, bg="#ffca05", fg="white",
     font=("Arial", 15, "bold"), activebackground=maroonBG
 )
 
@@ -742,9 +943,12 @@ def increment_item():
         dispensingLabel.config(text="Done")
         newOrderBtn.place(relx=0.5, rely=0.1, relwidth=0.3, relheight=0.1, anchor="center")
         show_Btn()
+        get_items()
+        display_item_list()
         
 widgets = [
     (welcomeMsg, "Arial", 21),
+    (reconnectingLabel, "Arial", 18),
     (clickStart, "Arial", 18),
     (greetingsLabel, "Tahoma", 28, "bold"),
     (currentBalance_label, "Tahoma", 15, "bold"),

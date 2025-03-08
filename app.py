@@ -49,7 +49,6 @@ def get_items():
     try:
         all_item_list = supabase.table('items').select('*').order('id').execute()
         all_items = item_list.data
-        print('tanga')
 
         for item in all_items:
             slot = item['slot']
@@ -60,7 +59,7 @@ def get_items():
         item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
         print(item_list)
     except Exception as e:
-        print(f"An error occurred: {e}")
+        #print(f"An error occurred: {e}")
         item_list = []
 
 # Main window
@@ -135,6 +134,7 @@ def dispense_items(slotNumber):
     increment_item()
 
 def process_items(values_list):
+    #print(values_list)
     for index, count in enumerate(values_list):
         for _ in range(count): 
             dispense_items(item_pins[index])
@@ -258,7 +258,6 @@ bind_all_startPage(startPage, "<Button-1>", show_selectionPage)
 kithub_logo.bind("<Configure>", lambda event: designs.resize_logo(event, kithub_logo))
 
 def navigate_to_startPage():
-    print('bobo')
     global total_price, total_items, cart, current_page
     
     cart = {key: 0 for key in cart}
@@ -285,7 +284,6 @@ def navigate_to_startPage():
         checkoutBtn.config(state=tk.DISABLED)
     
     if current_page:
-        print(current_page)
         current_page.pack_forget()
 
     startPage.pack(fill="both", expand=True)
@@ -561,7 +559,7 @@ def on_key_press(event):
 def go_to_tapID_page():
     global current_page
     current_page = tapID_page
-    print(cart)
+    #print(cart)
     selectionPage.pack_forget()
     tapID_page.pack(fill="both", expand=True)
 
@@ -720,7 +718,7 @@ def go_back_to_selectionPage():
     selectionPage.pack(fill="both", expand=True)
 
 def go_to_confirmationPage(buffer):
-    global userData, CORRECT_PIN, balance, current_page
+    global userData, CORRECT_PIN, balance, current_page, current_item, total_items
     
     userQuery = supabase.table('students').select('*').eq('idcode', buffer).execute()
     
@@ -737,6 +735,7 @@ def go_to_confirmationPage(buffer):
         CORRECT_PIN = userData['pin']
         greetingsLabel.config(text="Hi, " + userData['fname'] + " " + userData['lname'])
         currentBalance_label.config(text="Current Balance is: " + str(userData['balance']))
+        dispensingLabel.config(text=f"Dispensing {current_item}/{total_items}")
     else:
         show_modal("No Account Found", 750)
     
@@ -770,7 +769,7 @@ def go_to_dispensePage():
 
 def wait():
     items_to_dispense = extract_values(cart)
-    print(items_to_dispense)
+    #print(items_to_dispense)
     process_items(items_to_dispense)
 
 def extract_values(item_dict):
@@ -805,7 +804,6 @@ def check_pin():
         
     if balance < total_price:
         defer = messagebox.askyesno("Insufficient Balance", "Payment difference will be added to your tuition")
-        print(defer)
         if not defer:
             clear_pin()
             return
@@ -820,7 +818,7 @@ def check_pin():
                 new_stock = matching_item['stocks'] - cart_quantity
 
                 supabase.table('items').update({'stocks': new_stock}).eq('id', matching_item['id']).execute()
-                print(f"Updated {item_name}: New stock is {new_stock}")
+                #print(f"Updated {item_name}: New stock is {new_stock}")
 
                 for _ in range(cart_quantity):
                     supabase.table('transactions').insert({
@@ -830,22 +828,19 @@ def check_pin():
                         'amount': matching_item['item_price']  # The price of the item
                     }).execute()
 
-                    print(f"Inserted transaction for {item_name} at price {matching_item['item_price']}")
+                    #print(f"Inserted transaction for {item_name} at price {matching_item['item_price']}")
     
     go_to_dispensePage()
 
 def go_back_to_tapIDPage():
     global current_page
     current_page = tapID_page
-    print(entered_pin)
     clear_pin()
     confirmationPage.pack_forget() 
     tapID_page.pack(fill="both", expand=True)
 
 def deduct():
     global balance, defer
-    print('bobo')
-    print(defer)
     if defer:
         defer_response = supabase.table('students').update({'balance': 0, 'fbalance': total_price - balance, 'deferred': True}).eq('idcode', userData['idcode']).execute()
     else:
@@ -956,16 +951,20 @@ def show_Btn(opacity=0):
     root.after(100, lambda: show_Btn(opacity + 0.05))  # Slower transition
 
 def increment_item():
-    global current_item
-    print(str(current_item) + "/" + str(total_items))
+    global current_item, total_items
+    print("Current Item: ")
+    print(current_item)
+    print("Total Item: ")
+    print(total_items)
     if current_item < total_items:
+        print(str(current_item) + "/" + str(total_items))
         current_item += 1
-        dispensingLabel.update_idletasks()
         dispensingLabel.config(text=f"Dispensing {current_item}/{total_items}")
         dispensingLabel.update_idletasks()
     else:
         dispensingLabel.config(text="Done")
         dispensingLabel.update_idletasks()
+        current_item = 1
         newOrderBtn.place(relx=0.5, rely=0.1, relwidth=0.3, relheight=0.1, anchor="center")
         show_Btn()
         get_items()
@@ -1031,7 +1030,7 @@ def update_selection(event, slot, dropdown_var, image_label, name_label, stocks_
         name_label.config(text=selected_item['item_name'])
         stocks_label.config(text=selected_item['stocks'])
     current_selections[slot] = selected_name
-    print(f"Slot {slot} changed to {selected_name}")
+    #print(f"Slot {slot} changed to {selected_name}")
     
     # Compare with original value
     if original_selections.get(slot) != selected_name:
