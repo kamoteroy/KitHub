@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from PIL import Image, ImageTk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 from supabase import Client, create_client
@@ -21,19 +22,29 @@ for item in items:
         slot_items[slot] = []
     slot_items[slot].append(item)
 
+goldBG = "#ffce03"
 # Create main window
 root = tk.Tk()
 root.geometry("800x480")
 root.title("KitHub")
-root.configure(bg="#ffce03")
+root.configure(bg=goldBG)
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+imgPrefix = os.path.join(script_dir, "img/")
+plus_img = Image.open(imgPrefix + "+.png")
+minus_img = Image.open(imgPrefix + "-.png")
+replace_img = Image.open(imgPrefix + "replace.png")
+backBtn_img = Image.open(imgPrefix + "back.png")
+save_img = Image.open(imgPrefix + "save.png")
+blank_img = Image.open(imgPrefix + "blank.png")
 edit_mode = True
 default_widgets = {}
 current_selections = {}
 original_selections = {}
+slot_stock_values = {}
+max_stocks = {1: 15, 2: 6, 3: 7, 4: 7}
 
 
-# Function to update image and name dynamically
 def update_selection(event, slot, dropdown_var, image_label, name_label, stocks_label):
     selected_name = dropdown_var.get()
     selected_item = next((i for i in slot_items[slot] if i['item_name'] == selected_name), None)
@@ -56,63 +67,34 @@ def update_selection(event, slot, dropdown_var, image_label, name_label, stocks_
     if original_selections.get(slot) != selected_name:
         print(f"Change detected in Slot {slot}: {original_selections[slot]} -> {selected_name}")
 
-# Function to return to Main Page
 def return_to_main():
     global edit_mode
     edit_mode = True
     if messagebox.askyesno("Confirmation", "Return to Main Page?"):
-        # Remove only dynamically created widgets
         for widget in admin_frame.winfo_children():
-            if widget not in {ok_button, back_button, refill_button}:
+            if widget not in {saveBtn, backBtn4, refillBtn}:
                 widget.destroy()
 
         admin_frame.place_forget()  # Hide admin page
         main_frame.place(relwidth=1, relheight=1)  # Show main page
 
+def saveBtn_action():
+    response = messagebox.askyesno("Changing Items", "Are you sure?")
+    if(response):
 
-# Function for OK button action
-def ok_button_action():
-    messagebox.askyesno("Confirmation", "Are you sure?")
-    print(slot_stock_values)
-    print(current_selections)
+        for _, item_name in original_selections.items():
+            supabase.table("items").update({
+                "forsale": 0,
+            }).eq("item_name", item_name).execute()
 
-max_stocks = {1: 15, 2: 6, 3: 7, 4: 7}
-def adjust_stock(slot, change):
-    """Adjust the stock for the given slot and update the UI."""
-    
-    # Get the current stocks label for this slot
-    stocks_label = default_widgets[slot][1]  # stocks_label is the second element in the default_widgets tuple
-    
-    # Get the current stock value from the text of the stocks_label
-    current_stock = int(stocks_label.cget("text"))  # Convert the text to integer
-    
-    # Apply the change (either +1 or -1)
-    new_stock = current_stock + change
-    
-    # Ensure the stock stays within valid bounds (0 to max_stocks for the slot)
-    if new_stock < 0:
-        new_stock = 0  # Can't have negative stocks
-    if new_stock > max_stocks.get(slot, 0):
-        new_stock = max_stocks.get(slot, 0)  # Can't exceed max_stocks for that slot
-    
-    # Update the stock label text to reflect the new stock value
-    stocks_label.config(text=str(new_stock))  # Update the displayed stock value
-    
-    # Get the minus and plus buttons
-    minus_btn = default_widgets[slot][2]  # minus button is the third element in the default_widgets tuple
-    plus_btn = default_widgets[slot][3]  # plus button is the fourth element in the default_widgets tuple
-    
-    # Disable "-" button if stock is 0
-    if new_stock <= 0:
-        minus_btn.config(state="disabled")
-    else:
-        minus_btn.config(state="normal")
-    
-    # Disable "+" button if stock exceeds max_stocks
-    if new_stock >= max_stocks.get(slot, 0):
-        plus_btn.config(state="disabled")
-    else:
-        plus_btn.config(state="normal")
+        for slot, item_name in current_selections.items():
+            stock_value = slot_stock_values[slot]
+            
+            # Update the selected item (set forsale=1 and update stocks)
+            supabase.table("items").update({
+                "forsale": 1,
+                "stocks": stock_value
+            }).eq("item_name", item_name).execute()
 
 def toggle_refill():
     global edit_mode
@@ -121,54 +103,37 @@ def toggle_refill():
         dropdown, stocks_label, minus_btn, plus_btn = widgets
         if edit_mode:
             dropdown.place_forget()
-            refill_button.config(text="Replace", anchor="center")
-            stocks_label.place(relx=0.8, rely=0.2 * slot, anchor="center")
+            refillBtn.config(text="Replace", anchor="center")
+            stocks_label.place(relx=0.8, rely=0.2 * slot, relwidth=0.05, relheight=0.05, anchor="center")
             minus_btn.place(relx=0.75, rely=0.2 * slot, anchor="center")
             plus_btn.place(relx=0.85, rely=0.2 * slot, anchor="center")
         else:
-            refill_button.config(text="Refill", anchor="center")
-            dropdown.place(relx=0.8333, rely=0.2 * slot, anchor="center")
+            refillBtn.config(text="Refill", anchor="center")
+            dropdown.place(relx=0.8, rely=0.2 * slot, anchor="center")
+            stocks_label.place_forget()
             minus_btn.place_forget()
             plus_btn.place_forget()
 
-# Create a dictionary to store the stock values for each slot
-slot_stock_values = {}
-
 def adjust_stock(slot, change):
-    """Adjust the stock for the given slot and update the UI."""
-    
-    # Get the current stocks label for this slot
-    stocks_label = default_widgets[slot][1]  # stocks_label is the second element in the default_widgets tuple
-    
-    # Get the current stock value from the text of the stocks_label
-    current_stock = int(stocks_label.cget("text"))  # Convert the text to integer
-    
-    # Apply the change (either +1 or -1)
+    stocks_label = default_widgets[slot][1] 
+    current_stock = int(stocks_label.cget("text"))
     new_stock = current_stock + change
     
-    # Ensure the stock stays within valid bounds (0 to max_stocks for the slot)
     if new_stock < 0:
-        new_stock = 0  # Can't have negative stocks
+        new_stock = 0
     if new_stock > max_stocks.get(slot, 0):
-        new_stock = max_stocks.get(slot, 0)  # Can't exceed max_stocks for that slot
+        new_stock = max_stocks.get(slot, 0) 
+
+    stocks_label.config(text=str(new_stock))
+    slot_stock_values[slot] = new_stock
+    minus_btn = default_widgets[slot][2]
+    plus_btn = default_widgets[slot][3]
     
-    # Update the stock label text to reflect the new stock value
-    stocks_label.config(text=str(new_stock))  # Update the displayed stock value
-    
-    # Store the updated stock value in the slot_stock_values dictionary
-    slot_stock_values[slot] = new_stock  # Save the updated stock value for this slot
-    
-    # Get the minus and plus buttons
-    minus_btn = default_widgets[slot][2]  # minus button is the third element in the default_widgets tuple
-    plus_btn = default_widgets[slot][3]  # plus button is the fourth element in the default_widgets tuple
-    
-    # Disable "-" button if stock is 0
     if new_stock <= 0:
         minus_btn.config(state="disabled")
     else:
         minus_btn.config(state="normal")
     
-    # Disable "+" button if stock exceeds max_stocks
     if new_stock >= max_stocks.get(slot, 0):
         plus_btn.config(state="disabled")
     else:
@@ -178,8 +143,44 @@ def populate_admin_page():
     global image_refs, default_widgets, original_selections, current_selections
     image_refs.clear()
     default_widgets.clear()
+
+    def resize_add(event):
+        resized_img = plus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized)
+
+    def resize_minus(event):
+        resized_img = minus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized)
+    
+    def resize_name_label(event):
+        scale_factor = min(event.width, event.height) / 35
+        new_font_size = max(1, int(10 * scale_factor))
+        resized_img = blank_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized, font=("Arial", new_font_size))
+
+    def resize_stocks_label(event):
+        scale_factor = min(event.width, event.height) / 35
+        new_font_size = max(1, int(20 * scale_factor))
+        event.widget.config(font=("Arial", new_font_size))
+
+    def resize_slot_label(event):
+        scale_factor = min(event.width, event.height) / 35
+        new_font_size = max(1, int(15 * scale_factor))
+        event.widget.config(font=("Arial", new_font_size, 'bold'))
     
     for slot, items in slot_items.items():
+
+        def resize_img_label(event, img_label, img_path):
+            img = Image.open(img_path)
+            new_width, new_height = event.width, event.height  # Get new dimensions
+            img_resized = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            
+            img_label.image_resized = ImageTk.PhotoImage(img_resized)
+            img_label.config(image=img_label.image_resized)
+
         if not items:
             continue
         
@@ -198,47 +199,74 @@ def populate_admin_page():
         img = Image.open(img_path).resize((80, 80), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(img)
         
-        slot_label = tk.Label(admin_frame, text=f'Slot {slot}', font=("Arial", 15), bg="white")
-        slot_label.place(relx=0.166 , rely=0.2 * slot, anchor="center")
+        slot_label = tk.Label(admin_frame, text=f'Slot {slot}', font=("Arial", 15), bg=goldBG, fg='black')
+        slot_label.place(relx=0.18 , rely=0.2 * slot, relheight=0.1, relwidth=0.1, anchor="center")
         
-        img_label = tk.Label(admin_frame, image=photo, bg="white")
+        img_label = tk.Label(admin_frame, image=photo, bg="red", bd=2)
         img_label.image = photo
-        img_label.place(relx=0.366, rely=0.2 * slot, anchor="center")
+        img_label.place(relx=0.366, rely=0.2 * slot, relheight=0.166, relwidth=0.1, anchor="center")
         image_refs.append(photo)
         
-        name_label = tk.Label(admin_frame, text=default_item['item_name'], font=("Arial", 12), bg="white")
-        name_label.place(relx=0.55 , rely=0.2 * slot, anchor="center")
+        name_label = tk.Label(admin_frame, text=default_item['item_name'],
+                              font=("Helvetica", 10), bg=goldBG, compound="center",
+                              wraplength=90)
+        name_label.place(relx=0.58 , rely=0.2 * slot, relwidth=0.15, relheight=0.09, anchor="center")
         
-        stocks_label = tk.Label(admin_frame, text=default_item['stocks'], font=("Arial", 12), bg="white")
-        
+        stocks_label = tk.Label(admin_frame, text=default_item['stocks'], font=("Arial", 12))
+        stocks_label.place(relx=0.8, rely=0.2 * slot, relwidth=0.05, relheight=0.05, anchor="center")
+
         selection_var = tk.StringVar(value=default_item['item_name'])
         dropdown = ttk.Combobox(admin_frame, textvariable=selection_var, values=slot_item_names, width=15, state="readonly")
         dropdown.bind("<<ComboboxSelected>>", lambda event, s=slot, dv=selection_var, il=img_label, nl=name_label, sl=stocks_label: update_selection(event, s, dv, il, nl, sl))
         
-        minus_btn = tk.Button(admin_frame, text="-", font=("Arial", 14), command=lambda s=slot: adjust_stock(s, -1))
-        plus_btn = tk.Button(admin_frame, text="+", font=("Arial", 14), command=lambda s=slot: adjust_stock(s, 1))
+        minus_btn = tk.Button(admin_frame, text="-", font=("Arial", 14), 
+                              command=lambda s=slot: adjust_stock(s, -1),
+                              highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG)
+        plus_btn = tk.Button(admin_frame, text="+", font=("Arial", 14), 
+                             command=lambda s=slot: adjust_stock(s, 1),
+                             highlightthickness=0, bd=0, bg= goldBG, activebackground=goldBG)
         
         current_stock = int(stocks_label.cget("text"))  # Convert text to integer
         
-        # Disable the "-" button if stock is 0, else enable
         minus_btn.config(state="disabled" if current_stock <= 0 else "normal")
-
-        # Disable the "+" button if stock exceeds max_stocks, else enable
         plus_btn.config(state="disabled" if current_stock >= max_stocks.get(slot, 0) else "normal")
         
-        stocks_label.place(relx=0.8, rely=0.2 * slot, anchor="center")
-        minus_btn.place(relx=0.75, rely=0.2 * slot, anchor="center")
-        plus_btn.place(relx=0.85, rely=0.2 * slot, anchor="center")
+        
+        minus_btn.place(relx=0.75, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
+        plus_btn.place(relx=0.85, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
         default_widgets[slot] = (dropdown, stocks_label, minus_btn, plus_btn)
 
-
+        name_label.bind("<Configure>", resize_name_label)
+        slot_label.bind("<Configure>", resize_slot_label)
+        stocks_label.bind("<Configure>", resize_stocks_label)
+        plus_btn.bind("<Configure>", lambda event:  resize_add(event))
+        minus_btn.bind("<Configure>", lambda event:  resize_minus(event))
+        img_label.bind("<Configure>", lambda event, il=img_label, ip=img_path: resize_img_label(event, il, ip))
 
 def show_admin_page():
-    refill_button.config(text="Replace", anchor="center")
+    refillBtn.config(text="Replace", anchor="center")
     if messagebox.askyesno("Confirmation", "Go to Admin Page?"):
         main_frame.place_forget()
         admin_frame.place(relwidth=1, relheight=1)
         populate_admin_page()
+
+def resize_refillBtn(event):
+    global replace_resize
+    resized_img = replace_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    replace_resize = ImageTk.PhotoImage(resized_img)
+    refillBtn.config(image=replace_resize)
+
+def resize_backBtn4(event):
+    global backBtn4_resize
+    resized_img = backBtn_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    backBtn4_resize = ImageTk.PhotoImage(resized_img)
+    backBtn4.config(image=backBtn4_resize)
+
+def resize_saveBtn(event):
+    global saveBtn_resize
+    resized_img = save_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    saveBtn_resize = ImageTk.PhotoImage(resized_img)
+    saveBtn.config(image=saveBtn_resize)
 
 # Main Page UI
 main_frame = tk.Frame(root, bg="#ffce03")
@@ -251,19 +279,28 @@ admin_button = tk.Button(main_frame, text="Admin Page", font=("Arial", 14), comm
 admin_button.place(relx=0.5, rely=0.5, anchor="center")
 
 # Admin Page UI (Full Screen)
-admin_frame = tk.Frame(root, bg="white")
+admin_frame = tk.Frame(root, bg=goldBG)
 
-ok_button = tk.Button(admin_frame, text="OK", font=("Arial", 14), command=ok_button_action)
-ok_button.place(relx=0.05, rely=0.05)  # Left side of the screen
+saveBtn = tk.Button(admin_frame, text="OK", font=("Arial", 14), command=saveBtn_action,
+                     highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
+saveBtn.place(relx=0.845 , rely=0.88, relwidth=0.115, relheight=0.08)
 
-back_button = tk.Button(admin_frame, text="Back", font=("Arial", 14), command=return_to_main)
-back_button.place(relx=0.9, rely=0.05)  # Top-right corner
-refill_button = tk.Button(admin_frame, text="Replace", font=("Arial", 14), command=toggle_refill, anchor="center")
-refill_button.place(relx=0.5, rely=0.05, relwidth=0.1)
+backBtn4 = tk.Button(admin_frame, text="Back", font=("Arial", 14), command=return_to_main, 
+                     highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
+backBtn4.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)
+
+refillBtn = tk.Button(admin_frame, text="Replace", font=("Arial", 14),
+                      command=toggle_refill, anchor="center", highlightthickness=0, 
+                      bd=0, bg=goldBG, activebackground=goldBG)
+refillBtn.place(relx=0.83, rely=0.06, relwidth=0.13, relheight=0.08)
 
 row_counter = 1
 image_refs = []
 
 main_frame.place(relwidth=1, relheight=1)
+
+backBtn4.bind("<Configure>", resize_backBtn4)
+refillBtn.bind("<Configure>", resize_refillBtn)
+saveBtn.bind("<Configure>", resize_saveBtn)
 
 root.mainloop()
