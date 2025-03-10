@@ -1177,6 +1177,7 @@ def toggle_refill():
             minus_btn.place(relx=0.75, rely=0.2 * slot, anchor="center")
             plus_btn.place(relx=0.85, rely=0.2 * slot, anchor="center")
         else:
+            print('bobo')
             refillBtn.config(text="Refill", anchor="center")
             dropdown.place(relx=0.8, rely=0.2 * slot, anchor="center")
             stocks_label.place_forget()
@@ -1203,6 +1204,16 @@ def saveBtn_action():
         display_item_list()
         navigate_to_startPage()
 
+def return_to_main():
+    global edit_mode
+    edit_mode = True
+    for widget in adminPage.winfo_children():
+        if widget not in {saveBtn, backBtn4, refillBtn}:
+            widget.destroy()
+
+    adminPage.place_forget()
+    navigate_to_startPage()
+
 def resize_refillBtn(event):
     global replace_resize
     resized_img = replace_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
@@ -1228,7 +1239,7 @@ saveBtn = tk.Button(adminPage, text="OK", font=("Arial", 14), command=saveBtn_ac
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
 saveBtn.place(relx=0.845 , rely=0.88, relwidth=0.115, relheight=0.08)
 
-backBtn4 = tk.Button(adminPage, text="Back", font=("Arial", 14), command=navigate_to_startPage, 
+backBtn4 = tk.Button(adminPage, text="Back", font=("Arial", 14), command=return_to_main, 
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
 backBtn4.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)
 
