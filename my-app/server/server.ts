@@ -23,26 +23,19 @@ app.post("/signup", async (req, res) => {
 	const { email, password } = req.body;
 
 	try {
-		console.log("ari");
 		const { data, error } = await supabase.auth.signUp({ email, password });
-		console.log(data);
-		console.log(error);
 		if (error) return res.status(400).json({ message: error.message });
 
 		res
 			.status(201)
 			.json({ message: "User created successfully", user: data.user });
 	} catch (error) {
-		console.log("dre");
 		res.status(500).json({ message: "Error creating user" });
 	}
 });
 
 app.post("/login", async (req, res) => {
 	const { id, password } = req.body;
-
-	console.log(id);
-	console.log(password);
 
 	try {
 		const { data, error } = await supabase
@@ -68,8 +61,16 @@ app.post("/login", async (req, res) => {
 		const token = jwt.sign({ idnum: data.idnum }, SECRET_KEY, {
 			expiresIn: "1h",
 		});
-
-		res.json({ user: { idnum: data.idnum }, token });
+		console.log(data);
+		res.json({
+			user: {
+				name: data.fname + " " + data.lname,
+				idnum: data.idnum,
+				balance: data.balance,
+				isAdmin: data.isAdmin,
+			},
+			token,
+		});
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: "Login failed" });
@@ -101,6 +102,109 @@ app.post("/reset", async (req, res) => {
 	} catch (err) {
 		res.status(500).json({ success: false, message: "Internal Server Error." });
 	}
+});
+
+const authenticateToken = (req, res, next) => {
+	const token = req.headers.authorization?.split(" ")[1];
+	if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+	try {
+		const decoded = jwt.verify(token, SECRET_KEY);
+		req.idnum = decoded.idnum;
+		next();
+	} catch (error) {
+		return res.status(403).json({ message: "Invalid token" });
+	}
+};
+
+app.post("/changepin", authenticateToken, async (req, res) => {
+	const { idnum } = req;
+	const { oldPIN, newPIN } = req.body;
+	try {
+		const { data, error } = await supabase
+			.from("students")
+			.select("pin")
+			.eq("idnum", idnum)
+			.single();
+
+		if (error || !data || String(data.pin) !== String(oldPIN)) {
+			return res.status(400).json({ message: "Incorrect old PIN" });
+		}
+
+		const { data: updatedData, error: updateError } = await supabase
+			.from("students")
+			.update({ pin: newPIN })
+			.eq("idnum", idnum)
+			.select();
+
+		if (updateError || updatedData.length === 0) {
+			throw updateError;
+		}
+
+		res.json({ message: "PIN changed successfully", updatedData });
+	} catch (err) {
+		console.error("Error changing PIN:", err);
+		res.status(500).json({ message: "Server error" });
+	}
+});
+
+app.get("/transactions/:idnum", async (req, res) => {
+	const { idnum } = req.params;
+	console.log(idnum);
+	try {
+		const { data, error } = await supabase
+			.from("transactions")
+			.select("type, amount, time")
+			.eq("student", idnum)
+			.order("time", { ascending: true });
+		if (error) return res.status(400).json({ message: error.message });
+
+		res.status(200).json(data);
+	} catch (error) {
+		res.status(500).json({ message: "Error fetching transactions" });
+	}
+});
+
+app.post("/addcredits", async (req, res) => {
+	const { idnum, credits } = req.body;
+
+	if (!idnum || isNaN(credits)) {
+		return res.status(400).json({ message: "Invalid ID or credits" });
+	}
+
+	const { data, error } = await supabase
+		.from("students")
+		.select("deferred, fbalance")
+		.eq("idnum", idnum)
+		.single();
+
+	if (error || !data) {
+		return res.status(404).json({ message: "User not found" });
+	}
+
+	let updatedBalance = data.fbalance;
+	let deferredStatus = data.deferred;
+
+	if (data.deferred) {
+		updatedBalance -= credits;
+	} else {
+		updatedBalance = 0;
+		deferredStatus = false;
+	}
+
+	const { error: updateError } = await supabase
+		.from("students")
+		.update({ fbalance: updatedBalance, deferred: deferredStatus })
+		.eq("idnum", idnum);
+
+	if (updateError) {
+		return res.status(500).json({ message: "Failed to update balance" });
+	}
+
+	res.json({
+		message: "Credits added successfully",
+		deferred: deferredStatus,
+	});
 });
 
 app.listen(PORT, () => {

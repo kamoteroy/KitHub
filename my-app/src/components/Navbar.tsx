@@ -1,13 +1,18 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/AuthStore"; // Adjust the import as needed
+import { useAuthStore } from "../store/AuthStore";
 
 const Navbar: React.FC = () => {
+	const { isAdmin } = useAuthStore((state) => state.user) || {};
 	const navItems = [
-		{ name: "Home", path: "/home" },
+		{ name: "Home", path: "/" },
 		{ name: "Change PIN", path: "/change" },
-		{ name: "History", path: "/history" },
+		{ name: "History", path: "/transactions" },
 	];
+
+	if (isAdmin) {
+		navItems.push({ name: "Load", path: "/load" });
+	}
 
 	const logout = useAuthStore((state) => state.logout);
 	const navigate = useNavigate();
@@ -18,7 +23,7 @@ const Navbar: React.FC = () => {
 	};
 
 	return (
-		<nav className="bg-red p-2 w-full flex justify-center fixed top-0 left-0">
+		<nav className="bg-red p-2 w-full flex justify-center absolute top-0 left-0">
 			<div className="flex flex-wrap justify-center md:justify-center items-center space-x-2">
 				{navItems.map((item) => (
 					<NavLink

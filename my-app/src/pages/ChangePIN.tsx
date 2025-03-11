@@ -1,34 +1,72 @@
 import React, { useState } from "react";
 import Navbar from "../components/Navbar";
+import { useAuthStore } from "../store/AuthStore";
 
 const ChangePIN: React.FC = () => {
+	const { token } = useAuthStore();
 	const [oldPassword, setOldPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
+	const [success, setSuccess] = useState("");
 
-	const handleChangePassword = (e: React.FormEvent) => {
+	const handleChangePassword = async (e: React.FormEvent) => {
 		e.preventDefault();
+		setError("");
+		setSuccess("");
 		if (newPassword !== confirmPassword) {
-			alert("New passwords do not match");
+			setError("New passwords do not match.");
 			return;
 		}
-		alert("Password changed successfully!");
+		try {
+			setLoading(true);
+
+			// Send request to backend
+			const response = await fetch("http://localhost:5000/changepin", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					oldPIN: oldPassword,
+					newPIN: newPassword,
+				}),
+			});
+
+			const data = await response.json();
+
+			if (!response.ok) {
+				throw new Error(data.message || "Failed to change PIN.");
+			}
+
+			setSuccess("PIN changed successfully!");
+			setOldPassword("");
+			setNewPassword("");
+			setConfirmPassword("");
+		} catch (err: any) {
+			setError(err.message);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	return (
 		<>
-			<div className="flex flex-col md:flex-row h-screen bg-gradient-to-b from-yellow-200 to-yellow-600">
+			<div className="flex items-center justify-center h-screen bg-gradient-to-b from-yellow-200 to-yellow-600">
 				<Navbar />
-				{/* Main Content */}
 				<div className="flex-1 flex justify-center items-center p-6">
 					<div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-						<h2 className="text-lg font-bold mb-4 text-center">
-							Change Password
-						</h2>
+						<h2 className="text-lg font-bold mb-4 text-center">Change PIN</h2>
+
+						{error && <p className="text-red-500 text-center">{error}</p>}
+						{success && <p className="text-green-500 text-center">{success}</p>}
+
 						<form onSubmit={handleChangePassword} className="space-y-4">
 							<input
 								type="password"
-								placeholder="Old Password"
+								placeholder="Old PIN"
 								className="w-full p-2 border rounded"
 								value={oldPassword}
 								onChange={(e) => setOldPassword(e.target.value)}
@@ -36,7 +74,7 @@ const ChangePIN: React.FC = () => {
 							/>
 							<input
 								type="password"
-								placeholder="New Password"
+								placeholder="New PIN"
 								className="w-full p-2 border rounded"
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
@@ -44,7 +82,7 @@ const ChangePIN: React.FC = () => {
 							/>
 							<input
 								type="password"
-								placeholder="Confirm Password"
+								placeholder="Confirm PIN"
 								className="w-full p-2 border rounded"
 								value={confirmPassword}
 								onChange={(e) => setConfirmPassword(e.target.value)}
@@ -54,8 +92,9 @@ const ChangePIN: React.FC = () => {
 								<button
 									type="submit"
 									className="bg-yellow-500 text-black px-4 py-2 rounded hover:bg-yellow-600"
+									disabled={loading}
 								>
-									Change Password
+									{loading ? "Changing..." : "Change PIN"}
 								</button>
 								<button
 									type="reset"
@@ -64,6 +103,8 @@ const ChangePIN: React.FC = () => {
 										setOldPassword("");
 										setNewPassword("");
 										setConfirmPassword("");
+										setError("");
+										setSuccess("");
 									}}
 								>
 									Clear Entries

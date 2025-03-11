@@ -24,16 +24,12 @@ const Login: React.FC = () => {
 			});
 
 			if (response.data.token) {
-				localStorage.setItem("authToken", response.data.token);
-
-				login(response.data.user);
-
+				useAuthStore.getState().login(response.data.user, response.data.token);
 				navigate("/home");
 			} else {
 				setError("Login failed. Please try again.");
 			}
 		} catch (error: any) {
-			// Set the error message from the backend (if any)
 			setError(error.response?.data?.message || "Invalid email or password");
 
 			console.error("Login failed", error);
@@ -86,7 +82,7 @@ const Login: React.FC = () => {
 
 					<div className="flex flex-col justify-center items-center">
 						<button
-							type="submit" // Ensure this button submits the form
+							type="submit"
 							className="bg-yellow-500 text-black px-4 py-2 rounded hover:bg-yellow-400"
 						>
 							Login

@@ -11,15 +11,17 @@ import Home from "./pages/Home";
 import { useAuthStore } from "./store/AuthStore";
 import ForgotPassword from "./pages/Forgot";
 import ChangePIN from "./pages/ChangePIN";
+import Transactions from "./pages/Transactions";
+import Load from "./pages/Load";
 
 const PrivateRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 	const { user } = useAuthStore();
-	return user ? element : <Navigate to="/home" />;
+	return user ? element : <Navigate to="/login" />;
 };
 
 const PublicRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 	const { user } = useAuthStore();
-	return user ? <Navigate to="/login" /> : element;
+	return user ? <Navigate to="/" /> : element;
 };
 
 const App: React.FC = () => {
@@ -29,12 +31,8 @@ const App: React.FC = () => {
 		<Router>
 			<Routes>
 				<Route
-					path="/"
-					element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
-				/>
-				<Route
 					path="*"
-					element={<Navigate to={isAuthenticated ? "/home" : "/login"} />}
+					element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
 				/>
 
 				{/* Public Routes */}
@@ -46,11 +44,16 @@ const App: React.FC = () => {
 				/>
 
 				{/* Private Routes */}
-				<Route path="/home" element={<PrivateRoute element={<Home />} />} />
+				<Route path="/" element={<PrivateRoute element={<Home />} />} />
+				<Route
+					path="/transactions"
+					element={<PrivateRoute element={<Transactions />} />}
+				/>
 				<Route
 					path="/change"
 					element={<PrivateRoute element={<ChangePIN />} />}
 				/>
+				<Route path="/load" element={<PrivateRoute element={<Load />} />} />
 			</Routes>
 		</Router>
 	);
