@@ -13,6 +13,7 @@ const Transactions: React.FC = () => {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
+	const { token } = useAuthStore();
 
 	const { idnum, name, balance } = useAuthStore((state) => state.user) || {};
 	const formattedIdnum = idnum
@@ -25,9 +26,13 @@ const Transactions: React.FC = () => {
 
 			setLoading(true);
 			try {
-				const response = await axios.get(
-					`http://localhost:5000/transactions/${idnum}`
-				);
+				const response = await axios.get(`http://localhost:5000/transactions`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+				});
 				setTransactions(response.data);
 			} catch (err: any) {
 				setError(err.response?.data?.message || "Failed to fetch transactions");

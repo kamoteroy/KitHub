@@ -22,7 +22,6 @@ const ChangePIN: React.FC = () => {
 		try {
 			setLoading(true);
 
-			// Send request to backend
 			const response = await fetch("http://localhost:5000/changepin", {
 				method: "POST",
 				headers: {

@@ -67,7 +67,7 @@ root = tk.Tk()
 root.geometry("800x480")
 root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
-#root.attributes('-fullscreen', True)  # Fullscreen mode
+#root.attributes('-fullscreen', True)
 '''root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
 root.attributes("-topmost", True)
@@ -78,9 +78,9 @@ def close_app(event):
 
 root.bind("<Control-Shift-Q>", close_app)'''
 
-input_buffer = ""  # A buffer to store input characters
+input_buffer = ""
 
-def on_input(event):        # for terminating app
+def on_input(event):
     global input_buffer
     char = event.char 
     if char.isdigit():
@@ -125,8 +125,18 @@ for pin in item_pins:
 
 
 def dispense_items(slotNumber):
-        
-    '''GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
+    global spring_Duration
+
+    if(slotNumber==17):
+        spring_Duration = 1.96
+    if(slotNumber==22):
+        spring_Duration = 1.885
+    if(slotNumber==23):
+        spring_Duration = 2.1
+    if(slotNumber==27):
+        spring_Duration = 1.885
+    '''
+    GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
     time.sleep(spring_Duration)
     GPIO.output(slotNumber, GPIO.HIGH)  # Turn off the relay
         
@@ -1174,8 +1184,8 @@ def toggle_refill():
             dropdown.place_forget()
             refillBtn.config(text="Replace", anchor="center")
             stocks_label.place(relx=0.8, rely=0.2 * slot, relwidth=0.05, relheight=0.05, anchor="center")
-            minus_btn.place(relx=0.75, rely=0.2 * slot, anchor="center")
-            plus_btn.place(relx=0.85, rely=0.2 * slot, anchor="center")
+            minus_btn.place(relx=0.75, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
+            plus_btn.place(relx=0.85, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
         else:
             print('bobo')
             refillBtn.config(text="Refill", anchor="center")
@@ -1202,7 +1212,7 @@ def saveBtn_action():
             }).eq("item_name", item_name).execute()
         get_items()
         display_item_list()
-        navigate_to_startPage()
+        return_to_main()
 
 def return_to_main():
     global edit_mode

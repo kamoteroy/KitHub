@@ -58,10 +58,13 @@ app.post("/login", async (req, res) => {
 			return res.status(401).json({ message: "Invalid password" });
 		}*/
 
-		const token = jwt.sign({ idnum: data.idnum }, SECRET_KEY, {
-			expiresIn: "1h",
-		});
-		console.log(data);
+		const token = jwt.sign(
+			{ idnum: data.idnum, balance: data.balance, isAdmin: data.isAdmin },
+			SECRET_KEY,
+			{
+				expiresIn: "1h",
+			}
+		);
 		res.json({
 			user: {
 				name: data.fname + " " + data.lname,
@@ -106,11 +109,13 @@ app.post("/reset", async (req, res) => {
 
 const authenticateToken = (req, res, next) => {
 	const token = req.headers.authorization?.split(" ")[1];
+	console.log(req.headers.authorization);
 	if (!token) return res.status(401).json({ message: "Unauthorized" });
 
 	try {
 		const decoded = jwt.verify(token, SECRET_KEY);
 		req.idnum = decoded.idnum;
+		req.isAdmin = decoded.isAdmin;
 		next();
 	} catch (error) {
 		return res.status(403).json({ message: "Invalid token" });
@@ -148,9 +153,9 @@ app.post("/changepin", authenticateToken, async (req, res) => {
 	}
 });
 
-app.get("/transactions/:idnum", async (req, res) => {
-	const { idnum } = req.params;
-	console.log(idnum);
+app.get("/transactions", authenticateToken, async (req, res) => {
+	const { idnum } = req;
+
 	try {
 		const { data, error } = await supabase
 			.from("transactions")
@@ -165,8 +170,15 @@ app.get("/transactions/:idnum", async (req, res) => {
 	}
 });
 
-app.post("/addcredits", async (req, res) => {
-	const { idnum, credits } = req.body;
+app.post("/addcredits", authenticateToken, async (req, res) => {
+	const { credits, idnum } = req.body;
+	const { isAdmin } = req;
+
+	console.log(isAdmin);
+	console.log(credits);
+	console.log(idnum);
+
+	if (!isAdmin) return;
 
 	if (!idnum || isNaN(credits)) {
 		return res.status(400).json({ message: "Invalid ID or credits" });
@@ -174,7 +186,7 @@ app.post("/addcredits", async (req, res) => {
 
 	const { data, error } = await supabase
 		.from("students")
-		.select("deferred, fbalance")
+		.select("deferred, forwardBalance, balance")
 		.eq("idnum", idnum)
 		.single();
 
@@ -182,19 +194,28 @@ app.post("/addcredits", async (req, res) => {
 		return res.status(404).json({ message: "User not found" });
 	}
 
-	let updatedBalance = data.fbalance;
+	let balance = data.balance;
+	let fbalance = data.forwardBalance;
 	let deferredStatus = data.deferred;
 
 	if (data.deferred) {
-		updatedBalance -= credits;
+		fbalance -= credits;
+		if (fbalance < 0) {
+			deferredStatus = !deferredStatus;
+			balance = -fbalance;
+			fbalance = 0;
+		}
 	} else {
-		updatedBalance = 0;
-		deferredStatus = false;
+		balance = parseInt(balance) + parseInt(credits);
 	}
 
 	const { error: updateError } = await supabase
 		.from("students")
-		.update({ fbalance: updatedBalance, deferred: deferredStatus })
+		.update({
+			forwardBalance: fbalance,
+			balance: balance,
+			deferred: deferredStatus,
+		})
 		.eq("idnum", idnum);
 
 	if (updateError) {

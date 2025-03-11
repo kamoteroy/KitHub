@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
 import Navbar from "../components/Navbar";
@@ -10,10 +9,10 @@ const Load: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const { token } = useAuthStore();
 	const [focusedField, setFocusedField] = useState<"idnum" | "credits" | null>(
 		null
 	);
-	const navigate = useNavigate();
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -21,12 +20,18 @@ const Load: React.FC = () => {
 		setSuccess(null);
 		setLoading(true);
 
-		const id = idnum.replace(/-/g, ""); // Remove hyphens from ID
-
+		const id = idnum.replace(/-/g, "");
 		try {
 			const response = await axios.post("http://localhost:5000/addcredits", {
-				idnum: id,
-				credits: credits,
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({
+					idnum: id,
+					credits: credits,
+				}),
 			});
 
 			const { message, deferred } = response.data;

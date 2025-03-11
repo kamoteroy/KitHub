@@ -56,9 +56,20 @@ const Login: React.FC = () => {
 						placeholder="xx-xxxx-xxx"
 						className="w-full p-2 mb-4 border rounded bg-white text-black"
 						value={idnum}
-						onChange={(e) => setIDnum(e.target.value)}
+						onChange={(e) => {
+							let value = e.target.value.replace(/\D/g, ""); // Remove non-numeric characters
+
+							// Auto format as XX-XXXX-XXX
+							if (value.length > 2)
+								value = value.slice(0, 2) + "-" + value.slice(2);
+							if (value.length > 7)
+								value = value.slice(0, 7) + "-" + value.slice(7, 10);
+
+							setIDnum(value);
+						}}
 						onFocus={() => setFocusedField("idnum")}
 						onBlur={() => setFocusedField(null)}
+						maxLength={11} // Ensures the format does not exceed XX-XXXX-XXX
 						required
 					/>
 
