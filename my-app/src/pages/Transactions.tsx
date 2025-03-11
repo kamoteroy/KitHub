@@ -21,13 +21,12 @@ const Transactions: React.FC = () => {
 		: "";
 
 	useEffect(() => {
-		const fetchTransactions = async () => {
-			if (!idnum) return;
+		if (!idnum || !token) return;
 
+		const fetchTransactions = async () => {
 			setLoading(true);
 			try {
 				const response = await axios.get(`http://localhost:5000/transactions`, {
-					method: "POST",
 					headers: {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,
@@ -42,7 +41,7 @@ const Transactions: React.FC = () => {
 		};
 
 		fetchTransactions();
-	}, [idnum]);
+	}, [idnum, token]);
 
 	return (
 		<div className="bg-gradient-to-b from-yellow-200 to-yellow-600 min-h-screen">
