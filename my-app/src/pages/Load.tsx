@@ -21,21 +21,23 @@ const Load: React.FC = () => {
 		setLoading(true);
 
 		const id = idnum.replace(/-/g, "");
+
 		try {
-			const response = await axios.post("http://localhost:5000/addcredits", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify({
+			const response = await axios.post(
+				"http://localhost:5000/addcredits",
+				{
 					idnum: id,
 					credits: credits,
-				}),
-			});
+				},
+				{
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
 
-			const { message, deferred } = response.data;
-
+			const { message } = response.data;
 			setSuccess(message);
 			setIDnum("");
 			setCredits("");

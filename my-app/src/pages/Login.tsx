@@ -11,7 +11,6 @@ const Login: React.FC = () => {
 		null
 	);
 	const navigate = useNavigate();
-	const login = useAuthStore((state) => state.login);
 
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();

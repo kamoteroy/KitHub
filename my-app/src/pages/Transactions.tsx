@@ -73,7 +73,7 @@ const Transactions: React.FC = () => {
 									<tbody>
 										{transactions.length > 0 ? (
 											transactions.map((transaction, index) => {
-												const [date, time] = transaction.time.split("T");
+												const [date] = transaction.time.split("T");
 
 												const formattedTime = new Date(
 													transaction.time

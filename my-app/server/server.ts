@@ -19,20 +19,19 @@ const supabase = createClient(
 	process.env.SUPABASE_ANON_KEY!
 );
 
-app.post("/signup", async (req, res) => {
-	const { email, password } = req.body;
+const authenticateToken = (req, res, next) => {
+	const token = req.headers.authorization?.split(" ")[1];
+	if (!token) return res.status(401).json({ message: "Unauthorized" });
 
 	try {
-		const { data, error } = await supabase.auth.signUp({ email, password });
-		if (error) return res.status(400).json({ message: error.message });
-
-		res
-			.status(201)
-			.json({ message: "User created successfully", user: data.user });
+		const decoded = jwt.verify(token, SECRET_KEY);
+		req.idnum = decoded.idnum;
+		req.isAdmin = decoded.isAdmin;
+		next();
 	} catch (error) {
-		res.status(500).json({ message: "Error creating user" });
+		return res.status(403).json({ message: "Invalid token" });
 	}
-});
+};
 
 app.post("/login", async (req, res) => {
 	const { id, password } = req.body;
@@ -107,21 +106,6 @@ app.post("/reset", async (req, res) => {
 	}
 });
 
-const authenticateToken = (req, res, next) => {
-	const token = req.headers.authorization?.split(" ")[1];
-	console.log(req.headers.authorization);
-	if (!token) return res.status(401).json({ message: "Unauthorized" });
-
-	try {
-		const decoded = jwt.verify(token, SECRET_KEY);
-		req.idnum = decoded.idnum;
-		req.isAdmin = decoded.isAdmin;
-		next();
-	} catch (error) {
-		return res.status(403).json({ message: "Invalid token" });
-	}
-};
-
 app.post("/changepin", authenticateToken, async (req, res) => {
 	const { idnum } = req;
 	const { oldPIN, newPIN } = req.body;
@@ -173,10 +157,6 @@ app.get("/transactions", authenticateToken, async (req, res) => {
 app.post("/addcredits", authenticateToken, async (req, res) => {
 	const { credits, idnum } = req.body;
 	const { isAdmin } = req;
-
-	console.log(isAdmin);
-	console.log(credits);
-	console.log(idnum);
 
 	if (!isAdmin) return;
 
