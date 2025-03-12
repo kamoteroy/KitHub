@@ -14,6 +14,10 @@ const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
 app.use(cors({ origin: "https://kit-hub-server.vercel.app" }));
 app.use(express.json());
 
+app.get("/", (req, res) => {
+	res.json("bobo");
+});
+
 const supabase = createClient(
 	process.env.SUPABASE_URL!,
 	process.env.SUPABASE_ANON_KEY!
