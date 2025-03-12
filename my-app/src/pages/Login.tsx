@@ -88,6 +88,7 @@ const Login: React.FC = () => {
 						onChange={(e) => setPassword(e.target.value)}
 						onFocus={() => setFocusedField("password")}
 						onBlur={() => setFocusedField(null)}
+						maxLength={6}
 						required
 					/>
 

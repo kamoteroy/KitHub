@@ -54,7 +54,7 @@ const ChangePIN: React.FC = () => {
 
 	return (
 		<>
-			<div className="flex items-center justify-center h-screen bg-gradient-to-b from-yellow-200 to-yellow-600">
+			<div className="flex flex-col items-center justify-center h-screen bg-gradient-to-b from-yellow-200 to-yellow-600">
 				<Navbar />
 				<div className="flex-1 flex justify-center items-center p-6">
 					<div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
@@ -70,6 +70,7 @@ const ChangePIN: React.FC = () => {
 								className="w-full p-2 border rounded"
 								value={oldPassword}
 								onChange={(e) => setOldPassword(e.target.value)}
+								maxLength={6}
 								required
 							/>
 							<input
@@ -78,6 +79,7 @@ const ChangePIN: React.FC = () => {
 								className="w-full p-2 border rounded"
 								value={newPassword}
 								onChange={(e) => setNewPassword(e.target.value)}
+								maxLength={6}
 								required
 							/>
 							<input
@@ -86,6 +88,7 @@ const ChangePIN: React.FC = () => {
 								className="w-full p-2 border rounded"
 								value={confirmPassword}
 								onChange={(e) => setConfirmPassword(e.target.value)}
+								maxLength={6}
 								required
 							/>
 							<div className="flex justify-between">

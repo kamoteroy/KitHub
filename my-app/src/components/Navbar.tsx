@@ -23,8 +23,8 @@ const Navbar: React.FC = () => {
 	};
 
 	return (
-		<nav className="bg-red p-2 w-full flex justify-center absolute top-0 left-0">
-			<div className="flex flex-wrap justify-center md:justify-center items-center space-x-2">
+		<nav className=" p-2 w-full flex flex-wrap justify-center  top-0 left-0">
+			<div className="flex flex-wrap justify-center gap-2">
 				{navItems.map((item) => (
 					<NavLink
 						key={item.name}

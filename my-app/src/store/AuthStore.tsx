@@ -3,7 +3,7 @@ import { create } from "zustand";
 interface User {
 	idnum: string;
 	name: string;
-	balance: Int32Array;
+	balance: number;
 	isAdmin: boolean;
 }
 
