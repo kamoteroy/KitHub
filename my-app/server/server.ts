@@ -11,7 +11,7 @@ const app = express();
 const PORT = 5000;
 const SECRET_KEY = process.env.JWT_SECRET || "supersecretkey";
 
-app.use(cors());
+app.use(cors({ origin: "https://kit-hub-server.vercel.app/" }));
 app.use(express.json());
 
 const supabase = createClient(
