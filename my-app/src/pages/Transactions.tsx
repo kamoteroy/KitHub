@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
 import Navbar from "../components/Navbar";
+import CONFIG from "../components/Config";
 
 interface Transaction {
 	type: string;
@@ -26,7 +27,7 @@ const Transactions: React.FC = () => {
 		const fetchTransactions = async () => {
 			setLoading(true);
 			try {
-				const response = await axios.get(`http://localhost:5000/transactions`, {
+				const response = await axios.get(`${CONFIG.BASE_URL}/transactions`, {
 					headers: {
 						"Content-Type": "application/json",
 						Authorization: `Bearer ${token}`,

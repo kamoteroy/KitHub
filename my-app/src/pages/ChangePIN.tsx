@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Navbar from "../components/Navbar";
 import { useAuthStore } from "../store/AuthStore";
+import CONFIG from "../components/Config";
 
 const ChangePIN: React.FC = () => {
 	const { token } = useAuthStore();
@@ -22,7 +23,7 @@ const ChangePIN: React.FC = () => {
 		try {
 			setLoading(true);
 
-			const response = await fetch("http://localhost:5000/changepin", {
+			const response = await fetch(`${CONFIG.BASE_URL}/changepin`, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

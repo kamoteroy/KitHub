@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import CONFIG from "../components/Config";
 
 const ForgotPassword: React.FC = () => {
 	const [idnum, setIDnum] = useState("");
@@ -28,7 +29,7 @@ const ForgotPassword: React.FC = () => {
 
 		try {
 			const filteredID = idnum.replace(/-/g, "");
-			const response = await axios.post("http://localhost:5000/reset", {
+			const response = await axios.post(`${CONFIG.BASE_URL}/reset`, {
 				idnum: filteredID,
 			});
 

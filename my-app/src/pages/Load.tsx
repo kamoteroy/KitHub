@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
 import Navbar from "../components/Navbar";
+import CONFIG from "../components/Config";
 
 const Load: React.FC = () => {
 	const [idnum, setIDnum] = useState("");
@@ -24,7 +25,7 @@ const Load: React.FC = () => {
 
 		try {
 			const response = await axios.post(
-				"http://localhost:5000/addcredits",
+				`${CONFIG.BASE_URL}/addcredits`,
 				{
 					idnum: id,
 					credits: credits,

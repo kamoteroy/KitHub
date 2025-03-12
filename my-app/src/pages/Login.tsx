@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
+import CONFIG from "../components/Config";
 
 const Login: React.FC = () => {
 	const [idnum, setIDnum] = useState("");
@@ -17,7 +18,7 @@ const Login: React.FC = () => {
 
 		try {
 			const id = idnum.replace(/-/g, "");
-			const response = await axios.post("http://localhost:5000/login", {
+			const response = await axios.post(`${CONFIG.BASE_URL}/login`, {
 				id,
 				password,
 			});
