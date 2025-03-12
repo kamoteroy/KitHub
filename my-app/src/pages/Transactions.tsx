@@ -42,7 +42,7 @@ const Transactions: React.FC = () => {
 				setTransactions(response.data);
 			} catch (err: any) {
 				// If token is invalid or expired, log out and redirect to login
-				if (err.response?.status === 401) {
+				if (err.response?.status === 403) {
 					logout(); // Clear the token
 					navigate("/login"); // Redirect to login page
 				} else {
