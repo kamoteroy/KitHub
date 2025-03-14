@@ -60,7 +60,7 @@ app.get(
 			const { data, error } = await supabase
 				.from("transactions")
 				.select("type, amount, time")
-				.eq("student", 2)
+				.eq("student", idnum)
 				.order("time", { ascending: true });
 
 			if (error) return res.status(400).json({ message: error.message });

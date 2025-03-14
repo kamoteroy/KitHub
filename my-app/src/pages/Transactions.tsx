@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
 import { useNavigate } from "react-router-dom"; // Import for redirecting
 import Navbar from "../components/Navbar";
 import CONFIG from "../components/Config";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface Transaction {
 	type: string;
@@ -15,9 +17,10 @@ const Transactions: React.FC = () => {
 	const [transactions, setTransactions] = useState<Transaction[]>([]);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
-	const { token, logout } = useAuthStore(); // Get logout function
+	const { token, logout } = useAuthStore();
 	const { idnum, name, balance } = useAuthStore((state) => state.user) || {};
-	const navigate = useNavigate(); // Initialize navigation
+	const navigate = useNavigate();
+	const tableRef = useRef<HTMLDivElement>(null);
 
 	const formattedIdnum = idnum
 		? idnum.toString().replace(/(\d{2})(\d{4})(\d{3})/, "$1-$2-$3")
@@ -41,10 +44,9 @@ const Transactions: React.FC = () => {
 				});
 				setTransactions(response.data);
 			} catch (err: any) {
-				// If token is invalid or expired, log out and redirect to login
 				if (err.response?.status === 403) {
-					logout(); // Clear the token
-					navigate("/login"); // Redirect to login page
+					logout();
+					navigate("/login");
 				} else {
 					setError(
 						err.response?.data?.message || "Failed to fetch transactions"
@@ -57,6 +59,59 @@ const Transactions: React.FC = () => {
 
 		fetchTransactions();
 	}, [idnum, token, logout, navigate]);
+
+	const filteredTransactions = transactions.filter((transaction) => {
+		const transactionDate = new Date(transaction.time)
+			.toISOString()
+			.split("T")[0];
+
+		return (
+			(!search ||
+				transaction.type.toLowerCase().includes(search.toLowerCase()) ||
+				transaction.amount.toString().includes(search)) &&
+			(!startDate || transactionDate >= startDate) &&
+			(!endDate || transactionDate <= endDate)
+		);
+	});
+
+	const handleSavePDF = async () => {
+		const tableElement = tableRef.current;
+		if (!tableElement) return;
+
+		tableElement.style.overflow = "visible";
+
+		const scaleFactor = window.devicePixelRatio || 2;
+
+		const canvas = await html2canvas(tableElement, {
+			scale: scaleFactor,
+			useCORS: true,
+			backgroundColor: "#ffffff",
+			windowWidth: tableElement.scrollWidth,
+			windowHeight: tableElement.scrollHeight,
+		} as any);
+
+		const imgData = canvas.toDataURL("image/png");
+		const pdf = new jsPDF("p", "mm", "a4");
+
+		const imgWidth = 190; // Max width for the image inside the PDF
+		const imgHeight = (canvas.height * imgWidth) / canvas.width;
+		const pageHeight = 297; // A4 page height in mm
+		let yPosition = 10; // Initial Y position
+
+		let remainingHeight = imgHeight;
+		let currentY = 10;
+
+		while (remainingHeight > 0) {
+			pdf.addImage(imgData, "PNG", 10, currentY, imgWidth, imgHeight);
+
+			remainingHeight -= pageHeight;
+			currentY -= pageHeight;
+
+			if (remainingHeight > 0) pdf.addPage();
+		}
+
+		pdf.save(`${name} Transactions.pdf`);
+	};
 
 	return (
 		<div className="bg-gradient-to-b from-yellow-200 to-yellow-600 min-h-screen">
@@ -76,21 +131,30 @@ const Transactions: React.FC = () => {
 						/>
 						<input
 							type="date"
-							className="p-2 border rounded border border-black"
+							className="text-sm p-2 border rounded border border-black"
 							value={startDate}
 							onChange={(e) => setStartDate(e.target.value)}
 						/>
 						<input
 							type="date"
-							className="p-2 border rounded border border-black"
+							className="text-sm p-2 border rounded border border-black"
 							value={endDate}
 							onChange={(e) => setEndDate(e.target.value)}
 						/>
 					</div>
 					<h2 className="text-lg font-semibold">BALANCE: {balance}</h2>
+					<button
+						onClick={handleSavePDF}
+						className="bg-blue-600 text-white px-4 py-2 rounded"
+					>
+						Save as PDF
+					</button>
 				</div>
 
-				<div className="bg-white shadow-md rounded-lg overflow-hidden">
+				<div
+					ref={tableRef}
+					className="bg-white shadow-md rounded-lg overflow-hidden"
+				>
 					<div className="overflow-x-auto">
 						{loading ? (
 							<p className="p-4 text-center">Loading transactions...</p>
@@ -107,7 +171,7 @@ const Transactions: React.FC = () => {
 								</thead>
 								<tbody>
 									{transactions.length > 0 ? (
-										transactions.map((transaction, index) => {
+										filteredTransactions.map((transaction, index) => {
 											const [date] = transaction.time.split("T");
 											const formattedTime = new Date(
 												transaction.time
