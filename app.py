@@ -48,25 +48,29 @@ def get_items():
     global item_list, all_item_list, all_items, slot_items
     try:
         all_item_list = supabase.table('items').select('*').order('id').execute()
-        all_items = item_list.data
-
+        all_items = all_item_list.data
+        slot_items = {}
         for item in all_items:
             slot = item['slot']
+
             if slot not in slot_items:
                 slot_items[slot] = []
-            slot_items[slot].append(item)
 
+            if not any(existing_item['id'] == item['id'] for existing_item in slot_items[slot]):
+                slot_items[slot].append(item)
         item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
-        print(item_list)
+        #print(item_list)
     except Exception as e:
-        #print(f"An error occurred: {e}")
+        # print(f"An error occurred: {e}")
         item_list = []
+
 
 # Main window
 root = tk.Tk()
 root.geometry("800x480")
 root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
+root.option_add("*TCombobox*Listbox.Font", ("Arial", 20))
 #root.attributes('-fullscreen', True)
 '''root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
@@ -232,7 +236,7 @@ recon_animate()
 startPage = tk.Frame(root, bg=goldBG)
 
 top_section = tk.Frame(startPage, bg=maroonBG)
-top_section.place(relx=0, rely=0, relwidth=1, relheight=0.2)
+top_section.place(relx=0, rely=0, relwidth=1, relheight=0.15)
 
 welcomeMsg = tk.Label(top_section, text="Hi! Welcome to", fg="#fff705", bg=maroonBG)
 welcomeMsg.place(relx=0.5, rely=0.5, anchor="center")
@@ -241,10 +245,10 @@ kithub_logo = tk.Label(startPage, bg=goldBG)
 kithub_logo.place(relx=0.5, rely=0.5, relwidth=0.4, relheight=0.6, anchor="center")
 
 bottom_section = tk.Frame(startPage, bg=maroonBG)
-bottom_section.place(relx=0, rely=0.8, relwidth=1, relheight=0.2)
+bottom_section.place(relx=0, rely=0.85, relwidth=1, relheight=0.15)
 
 datdat = tk.StringVar()                                       
-datdat.set("Click Anywhere to Start")
+datdat.set("Tap Anywhere to Start")
 
 clickStart = tk.Label(bottom_section, textvariable=datdat, fg="white", bg=maroonBG)
 clickStart.place(relx=0.5, rely=0.5, anchor="center")
@@ -386,9 +390,10 @@ def listing_widget(parent, relx, rely, item):
             increaseBtn.config(state="disabled")
 
     def resize_canvasLabel(event):
-        scale_factor = min(event.width, event.height) / 21
+        scale_factor = min(event.width, event.height) / 25
         new_font_size = max(1, int(8 * scale_factor)) 
-        nameLabel.config(font=("Arial", new_font_size), wraplength=event.width)
+        nameLabel.config(font=("Arial", new_font_size + 5), wraplength=event.width)
+        leftLabel.config(font=("Arial", new_font_size + 2), wraplength=event.width)
 
     def resize_priceLabel(event):
         scale_factor = min(event.width, event.height) / 35
@@ -417,12 +422,12 @@ def listing_widget(parent, relx, rely, item):
     # Create the canvas
     canvas = tk.Canvas(parent, width=display_width + 20, height=display_height + 80, 
                        bg="white", bd=3, highlightthickness=0)
-    canvas.place(relx=relx, rely=rely+0.01, relwidth=0.2, relheight=0.5, anchor="center")
+    canvas.place(relx=relx, rely=rely-0.015, relwidth=0.23, relheight=0.55, anchor="center")
 
     # Add an image to the canvas
     image_resized = image.resize((int(display_width * 0.8), int(display_height * 0.6)), Image.Resampling.LANCZOS)
     canvas.image = ImageTk.PhotoImage(image_resized)
-    image_id = canvas.create_image(0, 0, image=canvas.image, anchor="center")
+    image_id = canvas.create_image(0, 0, image=canvas.image)
     
     # Bind hover events to the canvas
     canvas.bind("<Enter>", on_enter)
@@ -431,32 +436,32 @@ def listing_widget(parent, relx, rely, item):
 
     # Create the Item Name label
     leftLabel = tk.Label(parent, text=str(stocks) + " left", anchor="center", bg="white", fg="red")
-    leftLabel.place(relx=relx, rely=rely + 0.1, relwidth=0.17, relheight=0.07, anchor="center")
+    leftLabel.place(relx=relx, rely=rely + 0.08, relwidth=0.1, relheight=0.043, anchor="center")
     
     # Create the Item Name label
     nameLabel = tk.Label(parent, text=name, anchor="center", bg="white")
-    nameLabel.place(relx=relx, rely=rely + 0.15, relwidth=0.17, relheight=0.07, anchor="center")
+    nameLabel.place(relx=relx, rely=rely + 0.125, relwidth=0.22, relheight=0.06, anchor="center")
     
     # Create the value label
     priceLabel = tk.Label(parent, text='₱' + str(price), font=("Tahoma", 12),
                            anchor="center", compound="center", bg="white", fg="#fff705")
-    priceLabel.place(relx=relx, rely=rely + 0.22, relwidth=0.065, relheight=0.074, anchor="center")
+    priceLabel.place(relx=relx, rely=rely + 0.21, relwidth=0.078, relheight=0.084, anchor="center")
 
     # Create the -1 button
     decreaseBtn = tk.Button(parent, text="-", command=decrease, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG, state="disabled")
-    decreaseBtn.place(relx=relx - 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
+    decreaseBtn.place(relx=relx - 0.075, rely=rely + 0.33, relwidth=0.08, relheight=0.12, anchor="center")
     decrease_buttons.append(decreaseBtn)
     
     # Create the +1 button
     increaseBtn = tk.Button(parent, text="+", command=increase, width=35, highlightthickness=0,
                                 bg=goldBG, bd=0, activebackground=goldBG)
-    increaseBtn.place(relx=relx + 0.05, rely=rely + 0.305, relwidth=0.04, relheight=0.06, anchor="center")
+    increaseBtn.place(relx=relx + 0.075, rely=rely + 0.33, relwidth=0.08, relheight=0.12, anchor="center")
     increase_buttons.append(increaseBtn)
     
     # Create the value label
     valueLabel = tk.Label(parent, text="0", font=("Open Sans", 12), width=4, anchor="center", bg="white")
-    valueLabel.place(relx=relx, rely=rely + 0.305, relwidth=0.055, relheight=0.07, anchor="center")
+    valueLabel.place(relx=relx, rely=rely + 0.33, relwidth=0.065, relheight=0.1, anchor="center")
 
     if stocks <= 0:
         increaseBtn.config(state="disabled")
@@ -560,8 +565,9 @@ def on_key_press(event):
                     go_to_confirmationPage(buffer)
                 elif buffer.strip() == "3":  # Check if the input is "3"
                     show_admin_page()
-                    return
+                    
             buffer = ""
+            return
         else:
             buffer += event.char
 
@@ -573,16 +579,17 @@ def go_to_tapID_page():
     selectionPage.pack_forget()
     tapID_page.pack(fill="both", expand=True)
 
+
 ##### SELECTION PAGE WIDGETS
 
 
 selectionPage = tk.Frame(root, bg=goldBG)
 
 top_section = tk.Frame(selectionPage, bg=maroonBG)
-top_section.place(relx=0, rely=0, relwidth=1, relheight=0.2)
+top_section.place(relx=0, rely=0, relwidth=1, relheight=0.15)
 
 backBtn = tk.Button(
-    top_section,
+    selectionPage,
     text="Back",
     command=navigate_to_startPage,
     font=("Arial", 12),
@@ -593,12 +600,12 @@ backBtn = tk.Button(
     bd=0,
     highlightthickness=0
 )
-backBtn.place(relx=0.09, rely=0.5, relwidth=0.12, relheight=0.4, anchor="center")  
+backBtn.place(relx=0.025, rely=0.04, relwidth=0.12, relheight=0.08)
 
 bottom_section = tk.Frame(selectionPage, bg=maroonBG)
-bottom_section.place(relx=0, rely=0.8, relwidth=1, relheight=0.2)   
+bottom_section.place(relx=0, rely=0.85, relwidth=1, relheight=0.15)   
 selectItems_label = tk.Label(top_section, bg=maroonBG, font=("Tahoma", 24))
-selectItems_label.place(relx=0.5, rely=0.5, relwidth=0.25, relheight=0.5, anchor="center")
+selectItems_label.place(relx=0.5, rely=0.5, relwidth=0.25, relheight=0.65, anchor="center")
 
 def display_item_list():
     if not item_list or not item_list.data:
@@ -625,15 +632,15 @@ if item_list:
     display_item_list()
 
 total_label = tk.Label(selectionPage, text='Total: ₱' + str(total_price), bg=maroonBG, fg="white")
-total_label.place(relx=0.6, rely=0.9, relwidth=0.25, relheight=0.1, anchor="center")
+total_label.place(relx=0.6, rely=0.925, relwidth=0.25, relheight=0.1, anchor="center")
 
 checkoutBtn = tk.Button(selectionPage , bg=maroonBG, highlightthickness=0,
                             command=go_to_tapID_page, bd=0, activebackground=maroonBG, state=tk.DISABLED)
-checkoutBtn.place(relx=0.85, rely=0.9, relwidth=0.25, relheight=0.1, anchor="center")
+checkoutBtn.place(relx=0.85, rely=0.925, relwidth=0.25, relheight=0.1, anchor="center")
 
 checkBalanceBtn = tk.Button(selectionPage , bg=maroonBG, highlightthickness=0,
                             command=show_balanceModal, bd=0, activebackground=maroonBG)
-checkBalanceBtn.place(relx=0.18, rely=0.9, relwidth=0.3, relheight=0.1, anchor="center")
+checkBalanceBtn.place(relx=0.175, rely=0.925, relwidth=0.3, relheight=0.1, anchor="center")
 
 backBtn.bind("<Configure>", lambda event: designs.resize_backBtn(event, backBtn))
 selectItems_label.bind("<Configure>", lambda event: designs.resize_selectLabel(event, selectItems_label))
@@ -644,7 +651,7 @@ checkBalanceBtn.bind("<Configure>", lambda event: designs.resize_checkBalanceBtn
 
 # Function to check if connected to the internet
 def is_connected():
-    global item_list
+    global item_list, slot_items
     try:
         # Try connecting to a known host (Google's public DNS server) on port 53
         socket.create_connection(("8.8.8.8", 53), timeout=5)
@@ -759,7 +766,7 @@ backBtn2 = tk.Button(
     bd=0,
     highlightthickness=0
 )
-backBtn2.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)  # Place at top-left
+backBtn2.place(relx=0.025, rely=0.04, relwidth=0.12, relheight=0.08)
 
 tapID_label.bind("<Configure>", lambda event: designs.resize_tapID_label(event, tapID_label))
 backBtn2.bind("<Configure>", lambda event: designs.resize_backBtn2(event, backBtn2))
@@ -865,7 +872,7 @@ def deduct():
 confirmationPage = tk.Frame(root, bg=goldBG)
 
 backBtn3 = tk.Button(confirmationPage, text="Back", font=("Arial", 12), bg=goldBG, highlightthickness=0, command=go_back_to_tapIDPage, fg='white', activebackground=goldBG, bd=0)
-backBtn3.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)
+backBtn3.place(relx=0.025, rely=0.04, relwidth=0.12, relheight=0.08)
 
 greetingsLabel = tk.Label(confirmationPage, bg=goldBG, justify="center")
 greetingsLabel.place(relx=0.3, rely=0.25, anchor="center")
@@ -962,12 +969,12 @@ def show_Btn(opacity=0):
 
 def increment_item():
     global current_item, total_items
-    print("Current Item: ")
+    '''print("Current Item: ")
     print(current_item)
     print("Total Item: ")
-    print(total_items)
+    print(total_items)'''
     if current_item < total_items:
-        print(str(current_item) + "/" + str(total_items))
+        #print(str(current_item) + "/" + str(total_items))
         current_item += 1
         dispensingLabel.config(text=f"Dispensing {current_item}/{total_items}")
         dispensingLabel.update_idletasks()
@@ -1073,6 +1080,8 @@ def adjust_stock(slot, change):
 
 def populate_admin_page():
     global image_refs, default_widgets, original_selections, current_selections
+    print(original_selections)
+    print(current_selections)
     image_refs.clear()
     default_widgets.clear()
 
@@ -1132,20 +1141,20 @@ def populate_admin_page():
         photo = ImageTk.PhotoImage(img)
         
         slot_label = tk.Label(adminPage, text=f'Slot {slot}', font=("Arial", 15), bg=goldBG, fg='black')
-        slot_label.place(relx=0.18 , rely=0.2 * slot, relheight=0.1, relwidth=0.1, anchor="center")
+        slot_label.place(relx=0.15 , rely=0.2 * slot, relheight=0.1, relwidth=0.1, anchor="center")
         
         img_label = tk.Label(adminPage, image=photo, bg="red", bd=2)
         img_label.image = photo
-        img_label.place(relx=0.366, rely=0.2 * slot, relheight=0.166, relwidth=0.1, anchor="center")
+        img_label.place(relx=0.32, rely=0.2 * slot, relheight=0.166, relwidth=0.1, anchor="center")
         image_refs.append(photo)
         
         name_label = tk.Label(adminPage, text=default_item['item_name'],
                               font=("Helvetica", 10), bg=goldBG, compound="center",
                               wraplength=90)
-        name_label.place(relx=0.58 , rely=0.2 * slot, relwidth=0.15, relheight=0.09, anchor="center")
+        name_label.place(relx=0.51 , rely=0.2 * slot, relwidth=0.15, relheight=0.09, anchor="center")
         
-        stocks_label = tk.Label(adminPage, text=default_item['stocks'], font=("Arial", 12))
-        stocks_label.place(relx=0.8, rely=0.2 * slot, relwidth=0.05, relheight=0.05, anchor="center")
+        stocks_label = tk.Label(adminPage, text=default_item['stocks'], bg='white', font=("Arial", 12))
+        stocks_label.place(relx=0.76, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
 
         selection_var = tk.StringVar(value=default_item['item_name'])
         dropdown = ttk.Combobox(adminPage, textvariable=selection_var, values=slot_item_names, width=15, state="readonly")
@@ -1164,8 +1173,8 @@ def populate_admin_page():
         plus_btn.config(state="disabled" if current_stock >= max_stocks.get(slot, 0) else "normal")
         
         
-        minus_btn.place(relx=0.75, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
-        plus_btn.place(relx=0.85, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
+        minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+        plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         default_widgets[slot] = (dropdown, stocks_label, minus_btn, plus_btn)
 
         name_label.bind("<Configure>", resize_name_label)
@@ -1183,18 +1192,20 @@ def toggle_refill():
         if edit_mode:
             dropdown.place_forget()
             refillBtn.config(text="Replace", anchor="center")
-            stocks_label.place(relx=0.8, rely=0.2 * slot, relwidth=0.05, relheight=0.05, anchor="center")
-            minus_btn.place(relx=0.75, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
-            plus_btn.place(relx=0.85, rely=0.2 * slot, relwidth=0.04, relheight=0.06, anchor="center")
+            stocks_label.place(relx=0.76, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
+            minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+            plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         else:
-            print('bobo')
             refillBtn.config(text="Refill", anchor="center")
-            dropdown.place(relx=0.8, rely=0.2 * slot, anchor="center")
+            dropdown.place(relx=0.8, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
             stocks_label.place_forget()
             minus_btn.place_forget()
             plus_btn.place_forget()
 
 def saveBtn_action():
+    global current_selections, original_selections
+    print(current_selections)
+    print(original_selections)
     response = messagebox.askyesno("Changing Items", "Are you sure?")
     if(response):
         for _, item_name in original_selections.items():
@@ -1203,6 +1214,8 @@ def saveBtn_action():
             }).eq("item_name", item_name).execute()
 
         for slot, item_name in current_selections.items():
+            print(item_name)
+            print(slot_stock_values[slot])
             stock_value = slot_stock_values[slot]
             
             # Update the selected item (set forsale=1 and update stocks)
@@ -1251,12 +1264,12 @@ saveBtn.place(relx=0.845 , rely=0.88, relwidth=0.115, relheight=0.08)
 
 backBtn4 = tk.Button(adminPage, text="Back", font=("Arial", 14), command=return_to_main, 
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
-backBtn4.place(relx=0.03, rely=0.06, relwidth=0.12, relheight=0.08)
+backBtn4.place(relx=0.025, rely=0.04, relwidth=0.12, relheight=0.08)
 
 refillBtn = tk.Button(adminPage, text="Replace", font=("Arial", 14),
                       command=toggle_refill, anchor="center", highlightthickness=0, 
                       bd=0, bg=goldBG, activebackground=goldBG)
-refillBtn.place(relx=0.83, rely=0.06, relwidth=0.13, relheight=0.08)
+refillBtn.place(relx=0.83, rely=0.04, relwidth=0.13, relheight=0.08)
 
 
 backBtn4.bind("<Configure>", resize_backBtn4)
