@@ -43,6 +43,10 @@ all_items = {}
 slot_items = {}
 cart = {}
 defer = False
+max_items = 3
+lock_img_tk = None
+unlock_img_tk = None
+is_locked = True
 
 def get_items():
     global item_list, all_item_list, all_items, slot_items
@@ -70,7 +74,7 @@ root = tk.Tk()
 root.geometry("800x480")
 root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
-root.option_add("*TCombobox*Listbox.Font", ("Arial", 20))
+root.option_add("*TCombobox*Listbox.Font", ("Arial", 15))
 #root.attributes('-fullscreen', True)
 '''root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
@@ -148,7 +152,7 @@ def dispense_items(slotNumber):
     increment_item()
 
 def process_items(values_list):
-    #print(values_list)
+    print(values_list)
     for index, count in enumerate(values_list):
         for _ in range(count): 
             dispense_items(item_pins[index])
@@ -258,6 +262,9 @@ designs.datdat_animation(datdat, startPage)
 current_page = reconnectingPage
 
 def show_selectionPage(event):
+    global cart, total_items
+    print(cart)
+    print(total_items)
     global current_page
     current_page = selectionPage
     startPage.pack_forget()
@@ -294,6 +301,9 @@ def navigate_to_startPage():
     for btn in decrease_buttons:
         btn.config(state="disabled")
 
+    for btn in increase_buttons:
+        btn.config(state="normal")
+
     if 'checkoutBtn' in globals():
         checkoutBtn.config(state=tk.DISABLED)
     
@@ -312,7 +322,6 @@ def listing_widget(parent, relx, rely, item):
     price = item['item_price']
     stocks = item['stocks']
     cart[name] = 0
-    max_items = min(stocks, 3)
 
 
     def on_enter(event):
@@ -370,7 +379,8 @@ def listing_widget(parent, relx, rely, item):
     def increase():
         global total_price, total_items
         current_value = int(valueLabel["text"])
-        if(total_items>=max_items):
+        print(stocks)
+        if(current_value >= stocks or total_items>=3):
             flicker(valueLabel)
         else:
             total_items +=1
@@ -385,8 +395,7 @@ def listing_widget(parent, relx, rely, item):
             decreaseBtn.config(state="normal")
         else:
             decreaseBtn.config(state="disabled")
-
-        if int(valueLabel["text"]) >= max_items:  # Disable if stock limit is reached
+        if(int(valueLabel["text"])>=stocks or total_items==max_items):
             increaseBtn.config(state="disabled")
 
     def resize_canvasLabel(event):
@@ -653,23 +662,33 @@ checkBalanceBtn.bind("<Configure>", lambda event: designs.resize_checkBalanceBtn
 def is_connected():
     global item_list, slot_items
     try:
-        # Try connecting to a known host (Google's public DNS server) on port 53
+        # Try connecting to Google's public DNS
         socket.create_connection(("8.8.8.8", 53), timeout=5)
-        all_item_list = supabase.table('items').select('*').order('id').execute()
-        all_items = all_item_list.data
-        
-        if item_list == []:
-            item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
-            display_item_list()
-        if slot_items == {}:
-            for item in all_items:
-                slot = item['slot']
-                if slot not in slot_items:
-                    slot_items[slot] = []
-                slot_items[slot].append(item)
-        return True
+
+        # Try fetching data from Supabase
+        try:
+            all_item_list = supabase.table('items').select('*').order('id').execute()
+            all_items = all_item_list.data
+
+            if not item_list:  # If empty, fetch forsale items
+                item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+                display_item_list()
+
+            if not slot_items:  # If empty, populate slot_items
+                for item in all_items:
+                    slot = item['slot']
+                    if slot not in slot_items:
+                        slot_items[slot] = []
+                    slot_items[slot].append(item)
+
+            return True  # Connection successful
+
+        except Exception as e:
+            print(f"Database connection error: {e}")
+            return False  # Database error
+
     except (socket.timeout, socket.error):
-        return False
+        return False  # No internet connection
 
 def show_reconnectingPage():
     global reconnectingPage, current_page
@@ -786,7 +805,7 @@ def go_to_dispensePage():
 
 def wait():
     items_to_dispense = extract_values(cart)
-    #print(items_to_dispense)
+    print(cart)
     process_items(items_to_dispense)
 
 def extract_values(item_dict):
@@ -1011,6 +1030,9 @@ plus_img = Image.open(imgPrefix + "+.png")
 minus_img = Image.open(imgPrefix + "-.png")
 replace_img = Image.open(imgPrefix + "replace.png")
 backBtn_img = Image.open(imgPrefix + "back.png")
+lock_img = Image.open("lock.png")
+unlock_img = Image.open("unlock.png")
+power_img = Image.open("power.png")
 save_img = Image.open(imgPrefix + "save.png")
 blank_img = Image.open(imgPrefix + "blank.png")
 edit_mode = True
@@ -1203,7 +1225,7 @@ def toggle_refill():
             plus_btn.place_forget()
 
 def saveBtn_action():
-    global current_selections, original_selections
+    global current_selections, original_selections, cart
     print(current_selections)
     print(original_selections)
     response = messagebox.askyesno("Changing Items", "Are you sure?")
@@ -1223,6 +1245,7 @@ def saveBtn_action():
                 "forsale": 1,
                 "stocks": stock_value
             }).eq("item_name", item_name).execute()
+        cart = {}
         get_items()
         display_item_list()
         return_to_main()
@@ -1231,11 +1254,27 @@ def return_to_main():
     global edit_mode
     edit_mode = True
     for widget in adminPage.winfo_children():
-        if widget not in {saveBtn, backBtn4, refillBtn}:
+        if widget not in {saveBtn, backBtn4, refillBtn, unlockBtn}:
             widget.destroy()
 
     adminPage.place_forget()
     navigate_to_startPage()
+
+#GPIO.output(24, GPIO.LOW)
+
+def toggle_lock():
+    global is_locked
+
+    is_locked = not is_locked 
+    # Toggle GPIO based on lock state
+    '''if is_locked:
+        GPIO.output(24, GPIO.LOW)  # Lock (ON)
+    else:
+        GPIO.output(24, GPIO.HIGH)  # Unlock (OFF)'''
+
+    unlockBtn.config(image=unlock_img_tk if not is_locked else lock_img_tk)
+    unlockBtn.image = unlock_img_tk if not is_locked else lock_img_tk
+
 
 def resize_refillBtn(event):
     global replace_resize
@@ -1255,7 +1294,29 @@ def resize_saveBtn(event):
     saveBtn_resize = ImageTk.PhotoImage(resized_img)
     saveBtn.config(image=saveBtn_resize)
 
-# Admin Page UI (Full Screen)
+def resize_powerBtn(event):
+    global powerBtn_resize
+    resized_img = power_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    powerBtn_resize = ImageTk.PhotoImage(resized_img)
+    powerBtn.config(image=powerBtn_resize)
+
+def resize_unlockBtn(event):
+    global lock_img_tk, unlock_img_tk
+
+    resized_lock = lock_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    resized_unlock = unlock_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+
+    lock_img_tk = ImageTk.PhotoImage(resized_lock)
+    unlock_img_tk = ImageTk.PhotoImage(resized_unlock)
+
+    unlockBtn.config(image=lock_img_tk if is_locked else unlock_img_tk)
+    unlockBtn.image = lock_img_tk if is_locked else unlock_img_tk
+
+def turn_off():
+    q = messagebox.askyesno("Turn Off", "Turn off the app?")
+    if(q):
+        root.destroy()
+
 adminPage = tk.Frame(root, bg=goldBG)
 
 saveBtn = tk.Button(adminPage, text="OK", font=("Arial", 14), command=saveBtn_action,
@@ -1271,7 +1332,16 @@ refillBtn = tk.Button(adminPage, text="Replace", font=("Arial", 14),
                       bd=0, bg=goldBG, activebackground=goldBG)
 refillBtn.place(relx=0.83, rely=0.04, relwidth=0.13, relheight=0.08)
 
+unlockBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=toggle_lock, 
+                     highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
+unlockBtn.place(relx=0.1, rely=0.88, relwidth=0.1, relheight=0.08)
 
+powerBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=turn_off, 
+                     highlightthickness=0, bd=2, bg=goldBG, activebackground=goldBG, anchor="center")
+powerBtn.place(relx=0.025, rely=0.865, relwidth=0.0625, relheight=0.104)
+
+powerBtn.bind("<Configure>", resize_powerBtn)
+unlockBtn.bind("<Configure>", resize_unlockBtn)
 backBtn4.bind("<Configure>", resize_backBtn4)
 refillBtn.bind("<Configure>", resize_refillBtn)
 saveBtn.bind("<Configure>", resize_saveBtn)
