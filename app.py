@@ -74,7 +74,7 @@ root = tk.Tk()
 root.geometry("800x480")
 root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
-root.option_add("*TCombobox*Listbox.Font", ("Arial", 15))
+root.option_add("*TCombobox*Listbox.Font", ("Arial", 17))
 #root.attributes('-fullscreen', True)
 '''root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
@@ -160,49 +160,39 @@ def process_items(values_list):
     deduct()
         
 def show_modal(message, duration):
-    # Create the modal
     modal = tk.Toplevel(root)
     modal_width = 200
     modal_height = 50
 
-    # Get app window position and size
     app_x = root.winfo_x()
     app_y = root.winfo_y()
     app_width = root.winfo_width()
     app_height = root.winfo_height()
 
     # Calculate modal position (centered horizontally, at 10% of app height)
-    x = max(app_x + (app_width // 2) - (modal_width // 2), app_x)  # Center horizontally within the app
-    start_y = max(app_y, app_y + int(app_height * 0.15) - modal_height)  # Start just above 10% of app height
-    end_y = min(app_y + int(app_height * 0.15), app_y + app_height - modal_height)  # End at 10% of app height
+    x = max(app_x + (app_width // 2) - (modal_width // 2), app_x)
+    start_y = max(app_y, app_y + int(app_height * 0.15) - modal_height)
+    end_y = min(app_y + int(app_height * 0.15), app_y + app_height - modal_height)
 
-    # Set modal geometry and appearance
     modal.geometry(f"{modal_width}x{modal_height}+{x}+{start_y}")
-    modal.overrideredirect(True)  # Remove window decorations
+    modal.overrideredirect(True)
     modal.configure(bg="red")
 
-    # Add modal content
     modal_label = tk.Label(modal, text=message, font=("Arial", 10, "bold"), fg="white", bg="red")
     modal_label.pack(fill="both", expand=True)
 
-    # Ensure the modal stays on top
     modal.lift()
     modal.attributes("-topmost", True)
 
-    # Define the animation function
     def animate_drop(current_y):
         if current_y < end_y:
-            # Move the modal down
             current_y += 10  
             modal.geometry(f"{modal_width}x{modal_height}+{x}+{current_y}")
             modal.after(10, animate_drop, current_y)
         else:
-            # Ensure modal stops at the exact end position
             modal.geometry(f"{modal_width}x{modal_height}+{x}+{end_y}")
-            # Automatically close the modal after n seconds
             modal.after(duration, modal.destroy)
 
-    # Start the animation
     animate_drop(start_y)
 
 reconnectingPage = tk.Frame(root, bg="#800000")
@@ -662,33 +652,31 @@ checkBalanceBtn.bind("<Configure>", lambda event: designs.resize_checkBalanceBtn
 def is_connected():
     global item_list, slot_items
     try:
-        # Try connecting to Google's public DNS
         socket.create_connection(("8.8.8.8", 53), timeout=5)
 
-        # Try fetching data from Supabase
         try:
             all_item_list = supabase.table('items').select('*').order('id').execute()
             all_items = all_item_list.data
 
-            if not item_list:  # If empty, fetch forsale items
+            if not item_list:
                 item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
                 display_item_list()
 
-            if not slot_items:  # If empty, populate slot_items
+            if not slot_items:
                 for item in all_items:
                     slot = item['slot']
                     if slot not in slot_items:
                         slot_items[slot] = []
                     slot_items[slot].append(item)
 
-            return True  # Connection successful
+            return True
 
         except Exception as e:
             print(f"Database connection error: {e}")
-            return False  # Database error
+            return False
 
     except (socket.timeout, socket.error):
-        return False  # No internet connection
+        return False
 
 def show_reconnectingPage():
     global reconnectingPage, current_page
@@ -708,7 +696,6 @@ def check_connection():
 
     root.after(1000, check_connection)
 
-# Start by checking the connection
 check_connection()
 
 ############################################################################ TAP ID PAGE
@@ -718,9 +705,8 @@ tapID_page = tk.Frame(root, bg=goldBG)
 tapID_label = tk.Label(tapID_page, bg=goldBG, fg="black", justify="center")
 tapID_label.place(relx=0.3, rely=0.5, relwidth=0.33, relheight=0.45, anchor="center")
 
-# Open the GIF file using Pillow
 gif_image = Image.open(imgPrefix + "tapID.gif")
-frames = [] # for frames
+frames = []
 for frame in range(gif_image.n_frames):
     
     gif_image.seek(frame)
@@ -847,7 +833,6 @@ def check_pin():
     clear_pin()
     for item_name, cart_quantity in cart.items():
         if cart_quantity > 0:
-            # Find the corresponding item in the item_list
             matching_item = next((item for item in item_list.data if item['item_name'] == item_name), None)
 
             if matching_item:
@@ -859,9 +844,9 @@ def check_pin():
                 for _ in range(cart_quantity):
                     supabase.table('transactions').insert({
                         'student': userData['idcode'],
-                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),  # Format the current time
-                        'type': item_name,  # The item name
-                        'amount': matching_item['item_price']  # The price of the item
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'type': item_name,
+                        'amount': matching_item['item_price']
                     }).execute()
 
                     #print(f"Inserted transaction for {item_name} at price {matching_item['item_price']}")
@@ -974,16 +959,13 @@ def show_Btn(opacity=0):
     if opacity > 1.0:  # Stop when fully visible
         return
     
-    # Calculate intermediate color (blend between white and maroon)
-    r = int(255 - (255 - 128) * opacity)  # Maroon RGB (128,0,0)
+    r = int(255 - (255 - 128) * opacity)
     g = int(255 - (255 - 0) * opacity)
     b = int(255 - (255 - 0) * opacity)
-    new_bg = f"#{r:02x}{g:02x}{b:02x}"  # Convert to hex
+    new_bg = f"#{r:02x}{g:02x}{b:02x}"
     
-    # Apply new background color
     newOrderBtn.config(bg=new_bg, activebackground=new_bg)
 
-    # Schedule next animation step (slower)
     root.after(100, lambda: show_Btn(opacity + 0.05))  # Slower transition
 
 def increment_item():
@@ -993,7 +975,6 @@ def increment_item():
     print("Total Item: ")
     print(total_items)'''
     if current_item < total_items:
-        #print(str(current_item) + "/" + str(total_items))
         current_item += 1
         dispensingLabel.config(text=f"Dispensing {current_item}/{total_items}")
         dispensingLabel.update_idletasks()
@@ -1030,9 +1011,9 @@ plus_img = Image.open(imgPrefix + "+.png")
 minus_img = Image.open(imgPrefix + "-.png")
 replace_img = Image.open(imgPrefix + "replace.png")
 backBtn_img = Image.open(imgPrefix + "back.png")
-lock_img = Image.open("lock.png")
-unlock_img = Image.open("unlock.png")
-power_img = Image.open("power.png")
+lock_img = Image.open(imgPrefix + "lock.png")
+unlock_img = Image.open(imgPrefix + "unlock.png")
+power_img = Image.open(imgPrefix + "power.png")
 save_img = Image.open(imgPrefix + "save.png")
 blank_img = Image.open(imgPrefix + "blank.png")
 edit_mode = True
@@ -1071,7 +1052,6 @@ def update_selection(event, slot, dropdown_var, image_label, name_label, stocks_
     current_selections[slot] = selected_name
     #print(f"Slot {slot} changed to {selected_name}")
     
-    # Compare with original value
     if original_selections.get(slot) != selected_name:
         print(f"Change detected in Slot {slot}: {original_selections[slot]} -> {selected_name}")
 
@@ -1219,7 +1199,7 @@ def toggle_refill():
             plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         else:
             refillBtn.config(text="Refill", anchor="center")
-            dropdown.place(relx=0.8, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
+            dropdown.place(relx=0.75, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
             stocks_label.place_forget()
             minus_btn.place_forget()
             plus_btn.place_forget()
@@ -1240,7 +1220,6 @@ def saveBtn_action():
             print(slot_stock_values[slot])
             stock_value = slot_stock_values[slot]
             
-            # Update the selected item (set forsale=1 and update stocks)
             supabase.table("items").update({
                 "forsale": 1,
                 "stocks": stock_value
@@ -1337,7 +1316,7 @@ unlockBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=toggle
 unlockBtn.place(relx=0.1, rely=0.88, relwidth=0.1, relheight=0.08)
 
 powerBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=turn_off, 
-                     highlightthickness=0, bd=2, bg=goldBG, activebackground=goldBG, anchor="center")
+                     highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
 powerBtn.place(relx=0.025, rely=0.865, relwidth=0.0625, relheight=0.104)
 
 powerBtn.bind("<Configure>", resize_powerBtn)
