@@ -1,0 +1,21 @@
+{
+	"name": "server",
+	"version": "1.0.0",
+	"main": "server.ts",
+	"scripts": {
+		"start": "node server.ts",
+		"dev": "ts-node server.ts"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "",
+	"dependencies": {
+		"server": "file:"
+	},
+	"devDependencies": {
+		"@types/node": "^22.13.10",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.8.2"
+	}
+}
