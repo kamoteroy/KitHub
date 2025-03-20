@@ -20,6 +20,9 @@ minus_img = Image.open(imgPrefix + "-.png")
 tapID_img = Image.open(imgPrefix + "tapurid.png")
 pinframe_original = Image.open(imgPrefix + "pinframe.png")
 balanceLabel_original = Image.open(imgPrefix + "balance.png")
+power_img = Image.open(imgPrefix + "power.png")
+save_img = Image.open(imgPrefix + "save.png")
+
 
 def datdat_animation2(datdat2, reconnectingPage):
     current_text = datdat2.get()
@@ -112,3 +115,23 @@ def resize_backBtn3(event, backBtn3):
     resized_img = backBtn_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
     backBtn_resized3 = ImageTk.PhotoImage(resized_img)
     backBtn3.config(image=backBtn_resized3)
+
+######### ADMIN PAGE
+
+def resize_backBtn4(event, backBtn4):
+    global backBtn_resized4
+    resized_img = backBtn_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    backBtn_resized4 = ImageTk.PhotoImage(resized_img)
+    backBtn4.config(image=backBtn_resized4)
+
+def resize_powerBtn(event, powerBtn):
+    global powerBtn_resized
+    resized_img = power_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    powerBtn_resized = ImageTk.PhotoImage(resized_img)
+    powerBtn.config(image=powerBtn_resized)
+
+def resize_saveBtn(event, saveBtn):
+    global saveBtn_resized
+    resized_img = save_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+    saveBtn_resized = ImageTk.PhotoImage(resized_img)
+    saveBtn.config(image=saveBtn_resized)

@@ -78,13 +78,7 @@ root.option_add("*TCombobox*Listbox.Font", ("Arial", 17))
 #root.attributes('-fullscreen', True)
 '''root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
-root.attributes("-topmost", True)
-
-# Custom key to close the app
-def close_app(event):
-    root.destroy()
-
-root.bind("<Control-Shift-Q>", close_app)'''
+root.attributes("-topmost", True)'''
 
 input_buffer = ""
 
@@ -569,7 +563,6 @@ def on_key_press(event):
             return
         else:
             buffer += event.char
-
         
 def go_to_tapID_page():
     global current_page
@@ -730,7 +723,6 @@ def animate_tapID(frame_index=0):
     root.after(50, animate_tapID, frame_index)
 
 animate_tapID()
-
 
 def go_back_to_selectionPage():
     global current_page
@@ -1006,16 +998,11 @@ dispensePage.bind("<Configure>", lambda event: designs.resize_labels(event, widg
 confirmationPage.bind("<Configure>", lambda event: designs.resize_labels(event, widgets, all_buttons))
 
 
-
-plus_img = Image.open(imgPrefix + "+.png")
-minus_img = Image.open(imgPrefix + "-.png")
-replace_img = Image.open(imgPrefix + "replace.png")
-backBtn_img = Image.open(imgPrefix + "back.png")
 lock_img = Image.open(imgPrefix + "lock.png")
 unlock_img = Image.open(imgPrefix + "unlock.png")
-power_img = Image.open(imgPrefix + "power.png")
-save_img = Image.open(imgPrefix + "save.png")
 blank_img = Image.open(imgPrefix + "blank.png")
+replace_img = Image.open(imgPrefix + "replace.png")
+refill_img = Image.open(imgPrefix + "refill.png")
 edit_mode = True
 default_widgets = {}
 current_selections = {}
@@ -1024,6 +1011,8 @@ slot_stock_values = {}
 max_stocks = {1: 15, 2: 6, 3: 7, 4: 7}
 row_counter = 1
 image_refs = []
+replace_img_tk = ImageTk.PhotoImage(replace_img)
+refill_img_tk = ImageTk.PhotoImage(refill_img)
 
 def show_admin_page():
     global current_page
@@ -1082,8 +1071,6 @@ def adjust_stock(slot, change):
 
 def populate_admin_page():
     global image_refs, default_widgets, original_selections, current_selections
-    print(original_selections)
-    print(current_selections)
     image_refs.clear()
     default_widgets.clear()
 
@@ -1132,12 +1119,11 @@ def populate_admin_page():
         original_selections[slot] = default_item['item_name']
         current_selections[slot] = default_item['item_name']
         
-        # Initialize stock value for the slot (this is where slot's stock is initially set)
-        slot_stock_values[slot] = int(default_item['stocks'])  # Store the stock value in the dictionary
+        slot_stock_values[slot] = int(default_item['stocks'])
         
         img_path = f"img/{default_item['item_photo']}"
         if not os.path.exists(img_path):
-            img_path = "img/placeholder.jpg"
+            img_path = "img/icon.png"
         
         img = Image.open(img_path).resize((80, 80), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(img)
@@ -1173,8 +1159,6 @@ def populate_admin_page():
         
         minus_btn.config(state="disabled" if current_stock <= 0 else "normal")
         plus_btn.config(state="disabled" if current_stock >= max_stocks.get(slot, 0) else "normal")
-        
-        
         minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         default_widgets[slot] = (dropdown, stocks_label, minus_btn, plus_btn)
@@ -1189,16 +1173,18 @@ def populate_admin_page():
 def toggle_refill():
     global edit_mode
     edit_mode = not edit_mode
+
     for slot, widgets in default_widgets.items():
         dropdown, stocks_label, minus_btn, plus_btn = widgets
+        
         if edit_mode:
             dropdown.place_forget()
-            refillBtn.config(text="Replace", anchor="center")
+            refillBtn.config(text="Replace", anchor="center", image=replace_img_tk)
             stocks_label.place(relx=0.76, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
             minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
             plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         else:
-            refillBtn.config(text="Refill", anchor="center")
+            refillBtn.config(text="Refill", anchor="center", image=refill_img_tk)
             dropdown.place(relx=0.75, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
             stocks_label.place_forget()
             minus_btn.place_forget()
@@ -1254,31 +1240,6 @@ def toggle_lock():
     unlockBtn.config(image=unlock_img_tk if not is_locked else lock_img_tk)
     unlockBtn.image = unlock_img_tk if not is_locked else lock_img_tk
 
-
-def resize_refillBtn(event):
-    global replace_resize
-    resized_img = replace_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-    replace_resize = ImageTk.PhotoImage(resized_img)
-    refillBtn.config(image=replace_resize)
-
-def resize_backBtn4(event):
-    global backBtn4_resize
-    resized_img = backBtn_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-    backBtn4_resize = ImageTk.PhotoImage(resized_img)
-    backBtn4.config(image=backBtn4_resize)
-
-def resize_saveBtn(event):
-    global saveBtn_resize
-    resized_img = save_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-    saveBtn_resize = ImageTk.PhotoImage(resized_img)
-    saveBtn.config(image=saveBtn_resize)
-
-def resize_powerBtn(event):
-    global powerBtn_resize
-    resized_img = power_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
-    powerBtn_resize = ImageTk.PhotoImage(resized_img)
-    powerBtn.config(image=powerBtn_resize)
-
 def resize_unlockBtn(event):
     global lock_img_tk, unlock_img_tk
 
@@ -1290,6 +1251,12 @@ def resize_unlockBtn(event):
 
     unlockBtn.config(image=lock_img_tk if is_locked else unlock_img_tk)
     unlockBtn.image = lock_img_tk if is_locked else unlock_img_tk
+
+def resize_refillBtn(event):
+    global refillBtn_resized
+    new_img = (replace_img if edit_mode else refill_img).resize((event.width, event.height), Image.Resampling.LANCZOS)
+    refillBtn_resized = ImageTk.PhotoImage(new_img)
+    refillBtn.config(image=refillBtn_resized)
 
 def turn_off():
     q = messagebox.askyesno("Turn Off", "Turn off the app?")
@@ -1319,11 +1286,11 @@ powerBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=turn_of
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
 powerBtn.place(relx=0.025, rely=0.865, relwidth=0.0625, relheight=0.104)
 
-powerBtn.bind("<Configure>", resize_powerBtn)
+backBtn4.bind("<Configure>", lambda event: designs.resize_backBtn(event, backBtn4))
+powerBtn.bind("<Configure>", lambda event: designs.resize_powerBtn(event, powerBtn))
+saveBtn.bind("<Configure>", lambda event: designs.resize_saveBtn(event, saveBtn))
 unlockBtn.bind("<Configure>", resize_unlockBtn)
-backBtn4.bind("<Configure>", resize_backBtn4)
 refillBtn.bind("<Configure>", resize_refillBtn)
-saveBtn.bind("<Configure>", resize_saveBtn)
 root.bind("<Key>", on_key_press)
 
 root.mainloop()
