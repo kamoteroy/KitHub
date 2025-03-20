@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { useAuthStore } from "../store/AuthStore";
-import { useNavigate } from "react-router-dom"; // Import for redirecting
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSave } from "@fortawesome/free-solid-svg-icons";
 import Navbar from "../components/Navbar";
 import CONFIG from "../components/Config";
 import jsPDF from "jspdf";
@@ -117,43 +119,47 @@ const Transactions: React.FC = () => {
 		<div className="bg-gradient-to-b from-yellow-200 to-yellow-600 min-h-screen">
 			<Navbar />
 			<div className="p-6">
-				<div className="flex justify-between items-center">
-					<h2 className="text-lg font-semibold">
+				<div className="md:flex md:flex-row md:justify-between md:items-center flex flex-col gap-2">
+					<h2 className="order-1 text-lg font-semibold">
 						WELCOME, {name} ({formattedIdnum})
 					</h2>
-					<div className="my-4 flex flex-wrap gap-4">
+					<div className="order-5 flex flex-col md:my-4 md:flex md:flex-row md:gap-4 md:order-2 gap-2">
 						<input
 							type="text"
 							placeholder="Search Item, Amount, Date"
-							className="w-96 p-2 border border-black rounded bg-white"
+							className="md:w-96 p-2 border border-black rounded bg-white"
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
 						/>
-						<input
-							type="date"
-							className="text-sm p-2 border rounded border border-black"
-							value={startDate}
-							onChange={(e) => setStartDate(e.target.value)}
-						/>
-						<input
-							type="date"
-							className="text-sm p-2 border rounded border border-black"
-							value={endDate}
-							onChange={(e) => setEndDate(e.target.value)}
-						/>
+						<div className="flex justify-around md:gap-4">
+							<input
+								type="date"
+								className="text-sm p-2 border rounded border border-black"
+								value={startDate}
+								onChange={(e) => setStartDate(e.target.value)}
+							/>
+							<input
+								type="date"
+								className="text-sm p-2 border rounded border border-black"
+								value={endDate}
+								onChange={(e) => setEndDate(e.target.value)}
+							/>
+						</div>
 					</div>
-					<h2 className="text-lg font-semibold">BALANCE: {balance}</h2>
-					<button
-						onClick={handleSavePDF}
-						className="bg-blue-600 text-white px-4 py-2 rounded"
-					>
-						Save as PDF
-					</button>
+					<div className="order-2 flex items-center justify-between w-full sm:w-auto sm:flex-row sm:gap-4">
+						<h2 className="text-lg font-semibold">BALANCE: {balance}</h2>
+						<button
+							onClick={handleSavePDF}
+							className="bg-blue-600 text-white px-4 py-2 rounded"
+						>
+							<FontAwesomeIcon icon={faSave} className="w-5 h-5" />
+						</button>
+					</div>
 				</div>
 
 				<div
 					ref={tableRef}
-					className="bg-white shadow-md rounded-lg overflow-hidden"
+					className="bg-white shadow-md rounded-lg overflow-hidden mt-2"
 				>
 					<div className="overflow-x-auto">
 						{loading ? (
@@ -194,7 +200,7 @@ const Transactions: React.FC = () => {
 													<td className="p-1 border pl-4">
 														{transaction.type}
 													</td>
-													<td className="p-1 border text-right pr-4">
+													<td className="p-1 border md:text-right md:pr-4 text-center">
 														{transaction.amount}
 													</td>
 												</tr>

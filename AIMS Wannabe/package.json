@@ -4,6 +4,8 @@
 	"private": true,
 	"type": "module",
 	"dependencies": {
+		"@fortawesome/free-solid-svg-icons": "^6.7.2",
+		"@fortawesome/react-fontawesome": "^0.2.2",
 		"@supabase/supabase-js": "^2.49.1",
 		"@tailwindcss/cli": "^4.0.12",
 		"@testing-library/dom": "^10.4.0",
