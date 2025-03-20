@@ -95,10 +95,9 @@ const Transactions: React.FC = () => {
 		const imgData = canvas.toDataURL("image/png");
 		const pdf = new jsPDF("p", "mm", "a4");
 
-		const imgWidth = 190; // Max width for the image inside the PDF
+		const imgWidth = 190;
 		const imgHeight = (canvas.height * imgWidth) / canvas.width;
-		const pageHeight = 297; // A4 page height in mm
-		let yPosition = 10; // Initial Y position
+		const pageHeight = 297;
 
 		let remainingHeight = imgHeight;
 		let currentY = 10;
