@@ -24,14 +24,17 @@ const Login: React.FC = () => {
 			});
 
 			if (response.data.token) {
-				useAuthStore.getState().login(response.data.user, response.data.token);
+				const expiresIn = 60;
+				console.log(expiresIn);
+				useAuthStore
+					.getState()
+					.login(response.data.user, response.data.token, 60);
 				navigate("/");
 			} else {
 				setError("Login failed. Please try again.");
 			}
 		} catch (error: any) {
 			setError(error.response?.data?.message || "Invalid email or password");
-
 			console.error("Login failed", error);
 		}
 	};

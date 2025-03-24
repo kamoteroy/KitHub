@@ -13,6 +13,8 @@ import ForgotPassword from "./pages/Forgot";
 import ChangePIN from "./pages/ChangePIN";
 import Transactions from "./pages/Transactions";
 import Load from "./pages/Load";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 const PrivateRoute: React.FC<{ element: JSX.Element }> = ({ element }) => {
 	const { user } = useAuthStore();
@@ -28,34 +30,40 @@ const App: React.FC = () => {
 	const isAuthenticated = useAuthStore((state) => state.user !== null);
 
 	return (
-		<Router>
-			<Routes>
-				<Route
-					path="*"
-					element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
-				/>
+		<>
+			<ToastContainer position="bottom-right" />
+			<Router>
+				<Routes>
+					<Route
+						path="*"
+						element={<Navigate to={isAuthenticated ? "/" : "/login"} />}
+					/>
 
-				{/* Public Routes */}
-				<Route path="/login" element={<PublicRoute element={<Login />} />} />
-				<Route path="/signup" element={<PublicRoute element={<Signup />} />} />
-				<Route
-					path="/forgot"
-					element={<PublicRoute element={<ForgotPassword />} />}
-				/>
+					{/* Public Routes */}
+					<Route path="/login" element={<PublicRoute element={<Login />} />} />
+					<Route
+						path="/signup"
+						element={<PublicRoute element={<Signup />} />}
+					/>
+					<Route
+						path="/forgot"
+						element={<PublicRoute element={<ForgotPassword />} />}
+					/>
 
-				{/* Private Routes */}
-				<Route path="/" element={<PrivateRoute element={<Home />} />} />
-				<Route
-					path="/transactions"
-					element={<PrivateRoute element={<Transactions />} />}
-				/>
-				<Route
-					path="/change"
-					element={<PrivateRoute element={<ChangePIN />} />}
-				/>
-				<Route path="/load" element={<PrivateRoute element={<Load />} />} />
-			</Routes>
-		</Router>
+					{/* Private Routes */}
+					<Route path="/" element={<PrivateRoute element={<Home />} />} />
+					<Route
+						path="/transactions"
+						element={<PrivateRoute element={<Transactions />} />}
+					/>
+					<Route
+						path="/change"
+						element={<PrivateRoute element={<ChangePIN />} />}
+					/>
+					<Route path="/load" element={<PrivateRoute element={<Load />} />} />
+				</Routes>
+			</Router>
+		</>
 	);
 };
 

@@ -96,11 +96,13 @@ app.post("/login", async (req, res) => {
 			return res.status(401).json({ message: "Invalid password" });
 		}*/
 
+		var expiresIn = 300; // 5 mins
+
 		const token = jwt.sign(
 			{ idnum: data.idnum, balance: data.balance, isAdmin: data.isAdmin },
 			SECRET_KEY,
 			{
-				expiresIn: "1h",
+				expiresIn: "60s",
 			}
 		);
 		res.json({
@@ -111,6 +113,7 @@ app.post("/login", async (req, res) => {
 				isAdmin: data.isAdmin,
 			},
 			token,
+			expiresIn,
 		});
 	} catch (error) {
 		console.error(error);

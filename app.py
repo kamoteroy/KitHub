@@ -1121,9 +1121,12 @@ def populate_admin_page():
         
         slot_stock_values[slot] = int(default_item['stocks'])
         
-        img_path = f"img/{default_item['item_photo']}"
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+
+        img_path = os.path.join(script_dir, "img", default_item["item_photo"])
+
         if not os.path.exists(img_path):
-            img_path = "img/icon.png"
+            img_path = os.path.join(script_dir, "img", "placeholder.png")
         
         img = Image.open(img_path).resize((80, 80), Image.Resampling.LANCZOS)
         photo = ImageTk.PhotoImage(img)
