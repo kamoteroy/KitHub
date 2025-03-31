@@ -62,7 +62,7 @@ def get_items():
 
             if not any(existing_item['id'] == item['id'] for existing_item in slot_items[slot]):
                 slot_items[slot].append(item)
-        item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+        item_list = supabase.table('items').select('*').eq('forsale', 1).order('slot').execute()
         #print(item_list)
     except Exception as e:
         # print(f"An error occurred: {e}")
@@ -76,9 +76,14 @@ root.title('KitHub')
 root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
 root.option_add("*TCombobox*Listbox.Font", ("Arial", 17))
 #root.attributes('-fullscreen', True)
-'''root.config(cursor="none")
+root.config(cursor="none")
 root.protocol("WM_DELETE_WINDOW", lambda: None)
-root.attributes("-topmost", True)'''
+root.attributes("-topmost", True)
+
+def disable_buttons():
+    for widget in root.winfo_children():
+        if isinstance(widget, tk.Button):
+            widget.config(state=tk.DISABLED, cursor="none")
 
 input_buffer = ""
 
@@ -130,13 +135,13 @@ def dispense_items(slotNumber):
     global spring_Duration
 
     if(slotNumber==17):
-        spring_Duration = 1.96
+        spring_Duration = 2.06
     if(slotNumber==22):
-        spring_Duration = 1.885
+        spring_Duration = 1.87
     if(slotNumber==23):
-        spring_Duration = 2.1
+        spring_Duration = 1.95
     if(slotNumber==27):
-        spring_Duration = 1.885
+        spring_Duration = 2.105
     '''
     GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
     time.sleep(spring_Duration)
@@ -556,7 +561,7 @@ def on_key_press(event):
             if buffer.strip():
                 if(current_page==tapID_page):
                     go_to_confirmationPage(buffer)
-                elif buffer.strip() == "3":  # Check if the input is "3"
+                elif buffer.strip() == "3" or '0005624496':  # Check if the input is "3"
                     show_admin_page()
                     
             buffer = ""
@@ -652,7 +657,7 @@ def is_connected():
             all_items = all_item_list.data
 
             if not item_list:
-                item_list = supabase.table('items').select('*').eq('forsale', 1).order('id').execute()
+                item_list = supabase.table('items').select('*').eq('forsale', 1).order('slot').execute()
                 display_item_list()
 
             if not slot_items:
@@ -855,7 +860,7 @@ def go_back_to_tapIDPage():
 def deduct():
     global balance, defer
     if defer:
-        defer_response = supabase.table('students').update({'balance': 0, 'fbalance': total_price - balance, 'deferred': True}).eq('idcode', userData['idcode']).execute()
+        defer_response = supabase.table('students').update({'balance': 0, 'forwardBalance': total_price - balance, 'deferred': True}).eq('idcode', userData['idcode']).execute()
     else:
         defer_response = supabase.table('students').update({'balance': balance - total_price}).eq('idcode', userData['idcode']).execute()
     print(defer_response)
