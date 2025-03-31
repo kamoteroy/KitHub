@@ -33,17 +33,14 @@ pinLimit = 6
 display_width = 120
 display_height = 120
 item_pins = [17, 27, 22, 23]
-spring_Duration = 1.9
-spring_Duration17 = 1.885
-spring_Duration22 = 1.9
-spring_Duration = 1.92
+adminCards = ['3', '0005624496'] # add admincards here
 item_list = []
 all_item_list = {}
 all_items = {}
 slot_items = {}
 cart = {}
 defer = False
-max_items = 3
+max_items = 12
 lock_img_tk = None
 unlock_img_tk = None
 is_locked = True
@@ -77,13 +74,15 @@ root.iconphoto(True, ImageTk.PhotoImage(Image.open(imgPrefix + "icon.png")))
 root.option_add("*TCombobox*Listbox.Font", ("Arial", 17))
 #root.attributes('-fullscreen', True)
 root.config(cursor="none")
-root.protocol("WM_DELETE_WINDOW", lambda: None)
-root.attributes("-topmost", True)
+#root.protocol("WM_DELETE_WINDOW", lambda: None)
+#root.attributes("-topmost", True)
 
 def disable_buttons():
     for widget in root.winfo_children():
         if isinstance(widget, tk.Button):
-            widget.config(state=tk.DISABLED, cursor="none")
+            widget.config(cursor="none")
+
+disable_buttons()
 
 input_buffer = ""
 
@@ -135,19 +134,17 @@ def dispense_items(slotNumber):
     global spring_Duration
 
     if(slotNumber==17):
-        spring_Duration = 2.06
-    if(slotNumber==22):
-        spring_Duration = 1.87
-    if(slotNumber==23):
-        spring_Duration = 1.95
-    if(slotNumber==27):
-        spring_Duration = 2.105
-    '''
-    GPIO.output(slotNumber, GPIO.LOW)  # Turn on the relay (active LOW)
+        spring_Duration = 2.09
+    elif(slotNumber==27):
+        spring_Duration = 1.9
+    elif(slotNumber==22):
+        spring_Duration = 2
+    elif(slotNumber==23):
+        spring_Duration = 2.11
+    
+    '''GPIO.output(slotNumber, GPIO.LOW) 
     time.sleep(spring_Duration)
-    GPIO.output(slotNumber, GPIO.HIGH)  # Turn off the relay
-        
-    # Call the increment_item function (replace this with your actual function)'''
+    GPIO.output(slotNumber, GPIO.HIGH)    # Call the increment_item function (replace this with your actual function)'''
     increment_item()
 
 def process_items(values_list):
@@ -269,10 +266,11 @@ kithub_logo.bind("<Configure>", lambda event: designs.resize_logo(event, kithub_
 
 def navigate_to_startPage():
     global total_price, total_items, cart, current_page
-    
     cart = {key: 0 for key in cart}
     total_price = 0
     total_items = 0
+
+    backBtn.place(relx=0.025, rely=0.04, relwidth=0.12, relheight=0.08)
     
     if 'total_label' in globals():
         total_label.config(text="Total: ₱" + str(total_price))
@@ -345,7 +343,7 @@ def listing_widget(parent, relx, rely, item):
             checkoutBtn.config(state=tk.DISABLED)
     
     def decrease():
-        global total_price, total_items
+        global total_price, total_items, max_items
         current_value = int(valueLabel["text"])
         
         if current_value > 0: 
@@ -369,7 +367,7 @@ def listing_widget(parent, relx, rely, item):
         global total_price, total_items
         current_value = int(valueLabel["text"])
         print(stocks)
-        if(current_value >= stocks or total_items>=3):
+        if(current_value >= stocks or total_items>=max_items):
             flicker(valueLabel)
         else:
             total_items +=1
@@ -561,8 +559,8 @@ def on_key_press(event):
             if buffer.strip():
                 if(current_page==tapID_page):
                     go_to_confirmationPage(buffer)
-                elif buffer.strip() == "3" or '0005624496':  # Check if the input is "3"
-                    show_admin_page()
+                elif buffer.strip() in adminCards:  
+                    show_admin_page() 
                     
             buffer = ""
             return
@@ -1200,8 +1198,6 @@ def toggle_refill():
 
 def saveBtn_action():
     global current_selections, original_selections, cart
-    print(current_selections)
-    print(original_selections)
     response = messagebox.askyesno("Changing Items", "Are you sure?")
     if(response):
         for _, item_name in original_selections.items():
@@ -1227,7 +1223,7 @@ def return_to_main():
     global edit_mode
     edit_mode = True
     for widget in adminPage.winfo_children():
-        if widget not in {saveBtn, backBtn4, refillBtn, unlockBtn}:
+        if widget not in {saveBtn, backBtn4, refillBtn, unlockBtn, powerBtn}:
             widget.destroy()
 
     adminPage.place_forget()
@@ -1294,7 +1290,7 @@ powerBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=turn_of
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
 powerBtn.place(relx=0.025, rely=0.865, relwidth=0.0625, relheight=0.104)
 
-backBtn4.bind("<Configure>", lambda event: designs.resize_backBtn(event, backBtn4))
+backBtn4.bind("<Configure>", lambda event: designs.resize_backBtn4(event, backBtn4))
 powerBtn.bind("<Configure>", lambda event: designs.resize_powerBtn(event, powerBtn))
 saveBtn.bind("<Configure>", lambda event: designs.resize_saveBtn(event, saveBtn))
 unlockBtn.bind("<Configure>", resize_unlockBtn)
