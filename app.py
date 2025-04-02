@@ -28,6 +28,7 @@ goldGreyed = "#bfbfbf"
 price_img = Image.open(imgPrefix + "price.png")
 plus_img = Image.open(imgPrefix + "+.png")
 minus_img = Image.open(imgPrefix + "-.png")
+calibrate_img = Image.open(imgPrefix + "calibrate.png")
 balanceLabel_original = Image.open(imgPrefix + "balance.png")
 pinLimit = 6
 display_width = 120
@@ -44,6 +45,20 @@ max_items = 12
 lock_img_tk = None
 unlock_img_tk = None
 is_locked = True
+lock_img = Image.open(imgPrefix + "lock.png")
+unlock_img = Image.open(imgPrefix + "unlock.png")
+blank_img = Image.open(imgPrefix + "blank.png")
+replace_img = Image.open(imgPrefix + "replace.png")
+refill_img = Image.open(imgPrefix + "refill.png")
+edit_mode = True
+default_widgets = {}
+current_selections = {}
+original_selections = {}
+slot_stock_values = {}
+max_stocks = {1: 6, 2: 7, 3: 6, 4: 15}
+row_counter = 1
+image_refs = []
+
 
 def get_items():
     global item_list, all_item_list, all_items, slot_items
@@ -1001,21 +1016,11 @@ dispensePage.bind("<Configure>", lambda event: designs.resize_labels(event, widg
 confirmationPage.bind("<Configure>", lambda event: designs.resize_labels(event, widgets, all_buttons))
 
 
-lock_img = Image.open(imgPrefix + "lock.png")
-unlock_img = Image.open(imgPrefix + "unlock.png")
-blank_img = Image.open(imgPrefix + "blank.png")
-replace_img = Image.open(imgPrefix + "replace.png")
-refill_img = Image.open(imgPrefix + "refill.png")
-edit_mode = True
-default_widgets = {}
-current_selections = {}
-original_selections = {}
-slot_stock_values = {}
-max_stocks = {1: 15, 2: 6, 3: 7, 4: 7}
-row_counter = 1
-image_refs = []
+################# ADMIN PAGE
+
 replace_img_tk = ImageTk.PhotoImage(replace_img)
 refill_img_tk = ImageTk.PhotoImage(refill_img)
+
 
 def show_admin_page():
     global current_page
@@ -1072,6 +1077,13 @@ def adjust_stock(slot, change):
     else:
         plus_btn.config(state="normal")
 
+def recalibrate(pin):
+    print(pin)
+
+    '''GPIO.output(pin, GPIO.LOW) 
+    time.sleep(0.1)
+    GPIO.output(pin, GPIO.HIGH)'''
+
 def populate_admin_page():
     global image_refs, default_widgets, original_selections, current_selections
     image_refs.clear()
@@ -1084,6 +1096,11 @@ def populate_admin_page():
 
     def resize_minus(event):
         resized_img = minus_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
+        event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
+        event.widget.config(image=event.widget.price_img_resized)
+    
+    def resize_calibrate(event):
+        resized_img = calibrate_img.resize((event.width, event.height), Image.Resampling.LANCZOS)
         event.widget.price_img_resized = ImageTk.PhotoImage(resized_img) 
         event.widget.config(image=event.widget.price_img_resized)
     
@@ -1135,20 +1152,20 @@ def populate_admin_page():
         photo = ImageTk.PhotoImage(img)
         
         slot_label = tk.Label(adminPage, text=f'Slot {slot}', font=("Arial", 15), bg=goldBG, fg='black')
-        slot_label.place(relx=0.15 , rely=0.2 * slot, relheight=0.1, relwidth=0.1, anchor="center")
+        slot_label.place(relx=0.1 , rely=0.2 * slot, relheight=0.1, relwidth=0.1, anchor="center")
         
         img_label = tk.Label(adminPage, image=photo, bg="red", bd=2)
         img_label.image = photo
-        img_label.place(relx=0.32, rely=0.2 * slot, relheight=0.166, relwidth=0.1, anchor="center")
+        img_label.place(relx=0.27, rely=0.2 * slot, relheight=0.166, relwidth=0.1, anchor="center")
         image_refs.append(photo)
         
         name_label = tk.Label(adminPage, text=default_item['item_name'],
                               font=("Helvetica", 10), bg=goldBG, compound="center",
                               wraplength=90)
-        name_label.place(relx=0.51 , rely=0.2 * slot, relwidth=0.15, relheight=0.09, anchor="center")
+        name_label.place(relx=0.46 , rely=0.2 * slot, relwidth=0.15, relheight=0.09, anchor="center")
         
         stocks_label = tk.Label(adminPage, text=default_item['stocks'], bg='white', font=("Arial", 12))
-        stocks_label.place(relx=0.76, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
+        stocks_label.place(relx=0.71, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
 
         selection_var = tk.StringVar(value=default_item['item_name'])
         dropdown = ttk.Combobox(adminPage, textvariable=selection_var, values=slot_item_names, width=15, state="readonly")
@@ -1165,15 +1182,21 @@ def populate_admin_page():
         
         minus_btn.config(state="disabled" if current_stock <= 0 else "normal")
         plus_btn.config(state="disabled" if current_stock >= max_stocks.get(slot, 0) else "normal")
-        minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
-        plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+        minus_btn.place(relx=0.63, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+        plus_btn.place(relx=0.79, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         default_widgets[slot] = (dropdown, stocks_label, minus_btn, plus_btn)
+
+        calibrateBtn = tk.Button(adminPage, text="Calibrate", font=("Arial", 10),
+                                command=lambda s=slot: recalibrate(item_pins[s-1]),
+                                highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG)
+        calibrateBtn.place(relx=0.9, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
 
         name_label.bind("<Configure>", resize_name_label)
         slot_label.bind("<Configure>", resize_slot_label)
         stocks_label.bind("<Configure>", resize_stocks_label)
         plus_btn.bind("<Configure>", lambda event:  resize_add(event))
         minus_btn.bind("<Configure>", lambda event:  resize_minus(event))
+        calibrateBtn.bind("<Configure>", lambda event:  resize_calibrate(event))
         img_label.bind("<Configure>", lambda event, il=img_label, ip=img_path: resize_img_label(event, il, ip))
 
 def toggle_refill():
