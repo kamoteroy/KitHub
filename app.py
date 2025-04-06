@@ -1209,12 +1209,12 @@ def toggle_refill():
         if edit_mode:
             dropdown.place_forget()
             refillBtn.config(text="Replace", anchor="center", image=replace_img_tk)
-            stocks_label.place(relx=0.76, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
-            minus_btn.place(relx=0.68, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
-            plus_btn.place(relx=0.84, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+            stocks_label.place(relx=0.71, rely=0.2 * slot, relwidth=0.07, relheight=0.07, anchor="center")
+            minus_btn.place(relx=0.63, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
+            plus_btn.place(relx=0.79, rely=0.2 * slot, relwidth=0.08, relheight=0.12, anchor="center")
         else:
             refillBtn.config(text="Refill", anchor="center", image=refill_img_tk)
-            dropdown.place(relx=0.75, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
+            dropdown.place(relx=0.71, rely=0.2 * slot, relwidth=0.2, relheight=0.12, anchor="center")
             stocks_label.place_forget()
             minus_btn.place_forget()
             plus_btn.place_forget()
@@ -1307,11 +1307,11 @@ refillBtn.place(relx=0.83, rely=0.04, relwidth=0.13, relheight=0.08)
 
 unlockBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=toggle_lock, 
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
-unlockBtn.place(relx=0.1, rely=0.88, relwidth=0.1, relheight=0.08)
+#unlockBtn.place(relx=0.1, rely=0.88, relwidth=0.1, relheight=0.08)
 
 powerBtn = tk.Button(adminPage, text="Back", font=("Arial", 14), command=turn_off, 
                      highlightthickness=0, bd=0, bg=goldBG, activebackground=goldBG, anchor="center")
-powerBtn.place(relx=0.025, rely=0.865, relwidth=0.0625, relheight=0.104)
+powerBtn.place(relx=0.06, rely=0.865, relwidth=0.0625, relheight=0.104)
 
 backBtn4.bind("<Configure>", lambda event: designs.resize_backBtn4(event, backBtn4))
 powerBtn.bind("<Configure>", lambda event: designs.resize_powerBtn(event, powerBtn))
