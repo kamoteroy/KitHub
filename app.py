@@ -853,7 +853,7 @@ def check_pin():
 
                 for _ in range(cart_quantity):
                     supabase.table('transactions').insert({
-                        'student': userData['idcode'],
+                        'student': userData['idnum'],
                         'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                         'type': item_name,
                         'amount': matching_item['item_price']
